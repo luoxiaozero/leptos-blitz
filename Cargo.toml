@@ -6,3 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+leptos = { git = "https://github.com/leptos-rs/leptos", branch = "leptos_0.7", features = ["csr"] }
+any_spawner = { git = "https://github.com/leptos-rs/leptos", branch = "leptos_0.7", features = ["tokio"] }
+blitz = { git = "https://github.com/DioxusLabs/blitz" }
+blitz-dom = { git = "https://github.com/DioxusLabs/blitz" }
