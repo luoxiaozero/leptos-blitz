@@ -22,6 +22,7 @@ impl Renderer for LeptosDom {
     }
 
     fn create_text_node(text: &str) -> Self::Text {
+        // LeptosDocument::<LeptosDom>::use_document();
         todo!()
     }
 

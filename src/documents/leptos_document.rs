@@ -1,34 +1,36 @@
-use std::sync::Arc;
-
 use super::leptos_dom::{Element, IntoView, LeptosDom};
 use any_spawner::Executor;
 use blitz::Viewport;
 use blitz_dom::Document;
 use leptos::{
-    context::use_context, reactive_graph::owner::Owner, tachys::view::{Mountable, Render}
+    context::{provide_context, use_context},
+    reactive_graph::{
+        owner::{Owner, StoredValue},
+        signal::ArcRwSignal,
+    },
+    tachys::view::{Mountable, Render},
+};
+use send_wrapper::SendWrapper;
+use std::{
+    borrow::Borrow,
+    sync::{Arc, Mutex, RwLock},
 };
 
-pub struct LeptosDocument<M>
-where
-    M: Mountable<LeptosDom>,
-{
-    inner: Document,
-    unmount_handle: UnmountHandle<M>,
+pub struct LeptosDocument {
+    inner: Arc<Document>,
+    unmount_handle: UnmountHandle,
 }
 
-impl<M> LeptosDocument<M>
-where
-    M: Mountable<LeptosDom>,
-{
-    pub fn new<F, N>(f: F) -> LeptosDocument<N::State>
+impl LeptosDocument {
+    pub fn new<F, N>(f: F) -> LeptosDocument
     where
         F: FnOnce() -> N + 'static,
-        N: IntoView,
+        N: IntoView + 'static,
     {
         let device = Viewport::new((0, 0)).make_device();
-        let document = Document::new(device);
+        let document = Arc::new(Document::new(device));
 
-        let unmount_handle = LeptosDocument::<N::State>::mount_to(&document, f);
+        let unmount_handle = LeptosDocument::mount_to(SendWrapper::new(document.clone()), f);
 
         LeptosDocument {
             inner: document,
@@ -36,46 +38,43 @@ where
         }
     }
 
-    fn mount_to<F, N>(document: &Document, f: F) -> UnmountHandle<N::State>
+    fn mount_to<F, N>(document: SendWrapper<Arc<Document>>, f: F) -> UnmountHandle
     where
         F: FnOnce() -> N + 'static,
-        N: IntoView,
+        N: IntoView + 'static,
     {
-        let parent = document.root_node();
-        let parent = unsafe { Element::convert_from_node(parent) };
-
         _ = Executor::init_tokio();
 
         let owner = Owner::new();
         let mountable = owner.with(move || {
+            provide_context(document.clone());
+
             let view = f().into_view();
             let mut mountable = view.build();
+
+            let parent = document.root_node();
+            let parent = unsafe { Element::convert_from_node(parent) };
+
             mountable.mount(parent, None);
 
-            mountable
+            Box::new(mountable) as Box<dyn Mountable<LeptosDom>>
         });
 
         UnmountHandle { owner, mountable }
     }
 
-    pub fn use_document() -> Arc<Document> {
-        use_context().expect("Docunebt ")
+    pub fn use_document() -> SendWrapper<Arc<Document>> {
+        use_context().expect("SendWrapper<Arc<Document>>")
     }
 }
 
-pub struct UnmountHandle<M>
-where
-    M: Mountable<LeptosDom>,
-{
+pub struct UnmountHandle {
     #[allow(dead_code)]
     owner: Owner,
-    mountable: M,
+    mountable: Box<dyn Mountable<LeptosDom>>,
 }
 
-impl<M> Drop for UnmountHandle<M>
-where
-    M: Mountable<LeptosDom>,
-{
+impl Drop for UnmountHandle {
     fn drop(&mut self) {
         self.mountable.unmount();
     }
