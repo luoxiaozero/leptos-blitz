@@ -3,6 +3,7 @@ use crate::documents::LeptosDocument;
 use crate::{Element, LeptosDom};
 use blitz_dom::{namespace_url, ns, Atom, ElementNodeData, NodeData, QualName};
 use leptos::tachys::{html::element::CreateElement, renderer::Renderer};
+use std::sync::Arc;
 use std::{fmt::Debug, marker::PhantomData};
 
 macro_rules! html_elements {
@@ -100,9 +101,8 @@ macro_rules! html_elements {
                             template_contents: None,
                         };
 
-                        let doc = LeptosDocument::use_document();
-                        let mut doc = doc.borrow_mut();
-                        // let doc = doc.get_mut();
+                        let mut doc = LeptosDocument::use_document().take();
+                        let doc = Arc::get_mut(&mut doc).unwrap();
                         let id = doc.create_node(NodeData::Element(data));
 
                         Element(id)

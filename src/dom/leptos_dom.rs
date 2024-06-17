@@ -1,3 +1,5 @@
+use std::{borrow::BorrowMut, ops::DerefMut, sync::Arc};
+
 use crate::LeptosDocument;
 use leptos::tachys::{
     renderer::{CastFrom, Renderer},
@@ -38,8 +40,8 @@ impl Renderer for LeptosDom {
     }
 
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
-        let doc = LeptosDocument::use_document();
-        let mut doc = doc.borrow_mut();
+        let mut doc = LeptosDocument::use_document().take();
+        let doc = Arc::get_mut(&mut doc).unwrap();
         if let Some(marker) = marker {
             doc.insert_before(new_child.0, &[marker.0]);
         } else {
