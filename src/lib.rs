@@ -1,7 +1,10 @@
 mod documents;
+mod dom;
 mod window;
 
-use documents::{IntoView, LeptosDocument};
+pub use dom::*;
+
+use documents::LeptosDocument;
 
 pub fn launch<F, N>(f: F)
 where
@@ -16,16 +19,10 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::launch;
-    use leptos::prelude::*;
+    use crate::*;
 
+    #[test]
     fn main() {
-        launch(move || {
-            view! {
-                <div>
-                    "123"
-                </div>
-            }
-        })
+        launch(move || div().child("123"))
     }
 }

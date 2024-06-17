@@ -1,20 +1,14 @@
-use super::leptos_dom::{Element, IntoView, LeptosDom};
+use crate::dom::{Element, IntoView, LeptosDom};
 use any_spawner::Executor;
 use blitz::Viewport;
 use blitz_dom::Document;
 use leptos::{
     context::{provide_context, use_context},
-    reactive_graph::{
-        owner::{Owner, StoredValue},
-        signal::ArcRwSignal,
-    },
+    reactive_graph::owner::Owner,
     tachys::view::{Mountable, Render},
 };
 use send_wrapper::SendWrapper;
-use std::{
-    borrow::Borrow,
-    sync::{Arc, Mutex, RwLock},
-};
+use std::sync::Arc;
 
 pub struct LeptosDocument {
     inner: Arc<Document>,

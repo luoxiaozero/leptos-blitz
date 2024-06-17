@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 leptos = { git = "https://github.com/leptos-rs/leptos", branch = "leptos_0.7", features = ["csr"] }
 any_spawner = { git = "https://github.com/leptos-rs/leptos", branch = "leptos_0.7", features = ["tokio"] }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", branch = "leptos_0.7" }
 blitz = { git = "https://github.com/DioxusLabs/blitz" }
 blitz-dom = { git = "https://github.com/DioxusLabs/blitz" }
 send_wrapper = "0.6.0"
+paste = "1"

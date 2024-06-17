@@ -1,12 +1,8 @@
-use super::LeptosDocument;
-use leptos::{
-    attr::Attribute,
-    prelude::{Render, RenderHtml},
-    tachys::{
-        renderer::{CastFrom, Renderer},
-        view::{add_attr::AddAnyAttr, Mountable},
-    },
+use leptos::tachys::{
+    renderer::{CastFrom, Renderer},
+    view::Mountable,
 };
+// use crate::documents::LeptosDocument;
 
 #[derive(Debug)]
 pub struct LeptosDom;
@@ -22,7 +18,6 @@ impl Renderer for LeptosDom {
     }
 
     fn create_text_node(text: &str) -> Self::Text {
-        // LeptosDocument::<LeptosDom>::use_document();
         todo!()
     }
 
@@ -87,11 +82,7 @@ impl Mountable<LeptosDom> for Node {
     ) {
     }
 
-    fn insert_before_this(
-        &self,
-        parent: &<LeptosDom as Renderer>::Element,
-        child: &mut dyn Mountable<LeptosDom>,
-    ) -> bool {
+    fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
         todo!()
     }
 }
@@ -129,11 +120,7 @@ impl Mountable<LeptosDom> for Element {
         todo!()
     }
 
-    fn insert_before_this(
-        &self,
-        parent: &<LeptosDom as Renderer>::Element,
-        child: &mut dyn Mountable<LeptosDom>,
-    ) -> bool {
+    fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
         todo!()
     }
 }
@@ -166,11 +153,7 @@ impl Mountable<LeptosDom> for Text {
         todo!()
     }
 
-    fn insert_before_this(
-        &self,
-        parent: &<LeptosDom as Renderer>::Element,
-        child: &mut dyn Mountable<LeptosDom>,
-    ) -> bool {
+    fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
         todo!()
     }
 }
@@ -184,55 +167,5 @@ impl CastFrom<Node> for Text {
 impl AsRef<Node> for Text {
     fn as_ref(&self) -> &Node {
         todo!()
-    }
-}
-
-pub struct View<T>(T)
-where
-    T: Sized;
-
-impl<T> View<T> {
-    pub fn into_inner(self) -> T {
-        self.0
-    }
-}
-
-pub trait IntoView
-where
-    Self: Sized + Render<LeptosDom> + RenderHtml<LeptosDom> + Send,
-{
-    fn into_view(self) -> View<Self>;
-}
-
-impl<T> IntoView for T
-where
-    T: Sized + Render<LeptosDom> + RenderHtml<LeptosDom> + Send, //+ AddAnyAttr<Dom>,
-{
-    fn into_view(self) -> View<Self> {
-        View(self)
-    }
-}
-
-impl<T: IntoView> Render<LeptosDom> for View<T> {
-    type State = T::State;
-
-    fn build(self) -> Self::State {
-        self.0.build()
-    }
-
-    fn rebuild(self, state: &mut Self::State) {
-        self.0.rebuild(state)
-    }
-}
-
-impl<T: IntoView> AddAnyAttr<LeptosDom> for View<T> {
-    type Output<SomeNewAttr: Attribute<LeptosDom>> =
-        <T as AddAnyAttr<LeptosDom>>::Output<SomeNewAttr>;
-
-    fn add_any_attr<NewAttr: Attribute<LeptosDom>>(self, attr: NewAttr) -> Self::Output<NewAttr>
-    where
-        Self::Output<NewAttr>: RenderHtml<LeptosDom>,
-    {
-        self.0.add_any_attr(attr)
     }
 }
