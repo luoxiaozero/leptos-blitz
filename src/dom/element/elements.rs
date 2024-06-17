@@ -1,7 +1,8 @@
-use leptos::tachys::{html::element::CreateElement, renderer::Renderer};
 use super::{ElementWithChildren, HtmlElement};
 use crate::documents::LeptosDocument;
-use crate::LeptosDom;
+use crate::{Element, LeptosDom};
+use blitz_dom::{namespace_url, ns, Atom, ElementNodeData, NodeData, QualName};
+use leptos::tachys::{html::element::CreateElement, renderer::Renderer};
 use std::{fmt::Debug, marker::PhantomData};
 
 macro_rules! html_elements {
@@ -86,10 +87,25 @@ macro_rules! html_elements {
 
                 impl CreateElement<LeptosDom> for [<$tag:camel>] {
                     fn create_element(&self) -> <LeptosDom as Renderer>::Element {
-                        // LeptosDocument::use_document().create_node(NodeData::Element(ElementNodeData{
-                            
-                        // }))
-                        todo!()
+                        let data = ElementNodeData {
+                            name: QualName {
+                                prefix: None,
+                                ns: ns!(html),
+                                local: Atom::from(stringify!($tag)),
+                            },
+                            id: None,
+                            attrs: vec![],
+                            style_attribute: Default::default(),
+                            image: None,
+                            template_contents: None,
+                        };
+
+                        let doc = LeptosDocument::use_document();
+                        let mut doc = doc.borrow_mut();
+                        // let doc = doc.get_mut();
+                        let id = doc.create_node(NodeData::Element(data));
+
+                        Element(id)
                     }
                 }
             )*

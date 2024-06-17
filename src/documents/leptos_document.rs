@@ -8,10 +8,14 @@ use leptos::{
     tachys::view::{Mountable, Render},
 };
 use send_wrapper::SendWrapper;
-use std::sync::Arc;
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+    cell::RefCell
+};
 
 pub struct LeptosDocument {
-    inner: Arc<Document>,
+    inner: Arc<RefCell<Document>>,
     unmount_handle: UnmountHandle,
 }
 
@@ -22,7 +26,7 @@ impl LeptosDocument {
         N: IntoView + 'static,
     {
         let device = Viewport::new((0, 0)).make_device();
-        let document = Arc::new(Document::new(device));
+        let document = Arc::new(RefCell::new(Document::new(device)));
 
         let unmount_handle = LeptosDocument::mount_to(SendWrapper::new(document.clone()), f);
 
@@ -32,7 +36,7 @@ impl LeptosDocument {
         }
     }
 
-    fn mount_to<F, N>(document: SendWrapper<Arc<Document>>, f: F) -> UnmountHandle
+    fn mount_to<F, N>(document: SendWrapper<Arc<RefCell<Document>>>, f: F) -> UnmountHandle
     where
         F: FnOnce() -> N + 'static,
         N: IntoView + 'static,
@@ -46,10 +50,11 @@ impl LeptosDocument {
             let view = f().into_view();
             let mut mountable = view.build();
 
-            let parent = document.root_node();
-            let parent = unsafe { Element::convert_from_node(parent) };
+            let doc = LeptosDocument::use_document();
+            let doc = doc.borrow();
+            let root_node_id = doc.root_node().id;
 
-            mountable.mount(parent, None);
+            mountable.mount(&Element(root_node_id), None);
 
             Box::new(mountable) as Box<dyn Mountable<LeptosDom>>
         });
@@ -57,7 +62,7 @@ impl LeptosDocument {
         UnmountHandle { owner, mountable }
     }
 
-    pub fn use_document() -> SendWrapper<Arc<Document>> {
+    pub fn use_document() -> SendWrapper<Arc<RefCell<Document>>> {
         use_context().expect("SendWrapper<Arc<Document>>")
     }
 }

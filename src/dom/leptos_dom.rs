@@ -1,8 +1,8 @@
+use crate::LeptosDocument;
 use leptos::tachys::{
     renderer::{CastFrom, Renderer},
     view::Mountable,
 };
-// use crate::documents::LeptosDocument;
 
 #[derive(Debug)]
 pub struct LeptosDom;
@@ -38,7 +38,15 @@ impl Renderer for LeptosDom {
     }
 
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
-        todo!()
+        let doc = LeptosDocument::use_document();
+        let mut doc = doc.borrow_mut();
+        if let Some(marker) = marker {
+            doc.insert_before(new_child.0, &[marker.0]);
+        } else {
+            let parent_id = parent.0;
+            let parent = doc.get_node_mut(parent_id).unwrap();
+            parent.children.push(new_child.0);
+        }
     }
 
     fn remove_node(parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
@@ -87,25 +95,11 @@ impl Mountable<LeptosDom> for Node {
     }
 }
 
-#[derive(Debug)]
-pub struct Node(pub blitz_dom::Node);
-
-impl Clone for Node {
-    fn clone(&self) -> Self {
-        todo!()
-    }
-}
+#[derive(Debug, Clone)]
+pub struct Node(pub usize);
 
 #[derive(Debug, Clone)]
-pub struct Element(pub Node);
-
-impl Element {
-    pub unsafe fn convert_from_node<'a>(node: &'a blitz_dom::Node) -> &'a Element {
-        let node_ptr: *const blitz_dom::Node = node;
-        let element_ptr: *const Element = node_ptr.cast();
-        &*element_ptr
-    }
-}
+pub struct Element(pub usize);
 
 impl Mountable<LeptosDom> for Element {
     fn unmount(&mut self) {
@@ -138,7 +132,7 @@ impl AsRef<Node> for Element {
 }
 
 #[derive(Debug, Clone)]
-pub struct Text(pub blitz_dom::TextNodeData);
+pub struct Text(pub usize);
 
 impl Mountable<LeptosDom> for Text {
     fn unmount(&mut self) {
