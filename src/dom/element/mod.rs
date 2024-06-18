@@ -1,8 +1,11 @@
-use leptos::{html::CreateElement, tachys::{
-    html::attribute::{Attribute, NextAttribute},
-    renderer::{CastFrom, Renderer},
-    view::{add_attr::AddAnyAttr, Mountable, Render, RenderHtml},
-}};
+use leptos::{
+    html::CreateElement,
+    tachys::{
+        html::attribute::Attribute,
+        renderer::{CastFrom, Renderer},
+        view::{Mountable, Render},
+    },
+};
 use next_tuple::NextTuple;
 use std::{marker::PhantomData, ops::Deref};
 

@@ -1,7 +1,7 @@
 use crate::dom::{Element, IntoView, LeptosDom, Node};
 use any_spawner::Executor;
 use blitz::Viewport;
-use blitz_dom::{document, Document, DocumentLike};
+use blitz_dom::{Document, DocumentLike};
 use leptos::{
     reactive_graph::owner::Owner,
     tachys::view::{Mountable, Render},
@@ -34,17 +34,18 @@ impl Into<Document> for LeptosDocument {
 }
 
 impl DocumentLike for LeptosDocument {
-    fn poll(&mut self, mut cx: std::task::Context) {
-        loop {
-            {
-                // pin_mut!(fut);
+    fn poll(&mut self, _cx: std::task::Context) {
+        // TODO
+        // loop {
+        //     {
+        //         // pin_mut!(fut);
 
-                // match fut.poll_unpin(&mut cx) {
-                //     std::task::Poll::Ready(_) => {}
-                //     std::task::Poll::Pending => break,
-                // }
-            }
-        }
+        //         // match fut.poll_unpin(&mut cx) {
+        //         //     std::task::Poll::Ready(_) => {}
+        //         //     std::task::Poll::Pending => break,
+        //         // }
+        //     }
+        // }
     }
 }
 

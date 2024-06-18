@@ -1,7 +1,6 @@
-use super::{ElementWithChildren, HtmlElement};
-use crate::documents::LeptosDocument;
-use crate::{Element, LeptosDom, Node};
-use blitz_dom::{namespace_url, ns, Atom, ElementNodeData, NodeData, QualName};
+use super::{super::leptos_dom::qual_name, ElementWithChildren, HtmlElement};
+use crate::{documents::LeptosDocument, Element, LeptosDom, Node};
+use blitz_dom::{ElementNodeData, NodeData};
 use leptos::tachys::{html::element::CreateElement, renderer::Renderer};
 use std::{fmt::Debug, marker::PhantomData};
 
@@ -88,11 +87,7 @@ macro_rules! html_elements {
                 impl CreateElement<LeptosDom> for [<$tag:camel>] {
                     fn create_element(&self) -> <LeptosDom as Renderer>::Element {
                         let data = ElementNodeData {
-                            name: QualName {
-                                prefix: None,
-                                ns: ns!(html),
-                                local: Atom::from(stringify!($tag)),
-                            },
+                            name: qual_name(stringify!($tag), Some(stringify!($tag))),
                             id: None,
                             attrs: vec![],
                             style_attribute: Default::default(),
@@ -110,128 +105,132 @@ macro_rules! html_elements {
     }
 }
 
-// macro_rules! html_self_closing_elements {
-// 	($(
-//         #[$meta:meta]
-//         $tag:ident $ty:ident [$($attr:ty),*] $escape:literal
-//       ),*
-//       $(,)?
-//     ) => {
-//         paste::paste! {
-//             $(
-//                 #[$meta]
-//                 pub fn $tag<Rndr>() -> HtmlElement<[<$tag:camel>], (), (), Rndr>
-//                 where
-//                     Rndr: Renderer
-//                 {
-//                     HtmlElement {
-//                         attributes: (),
-//                         children: (),
-//                         rndr: PhantomData,
-//                         tag: [<$tag:camel>],
-//                         #[cfg(debug_assertions)]
-//                         defined_at: std::panic::Location::caller()
-//                     }
-//                 }
+macro_rules! html_self_closing_elements {
+	($(
+        #[$meta:meta]
+        $tag:ident $ty:ident [$($attr:ty),*] $escape:literal
+      ),*
+      $(,)?
+    ) => {
+        paste::paste! {
+            $(
+                #[$meta]
+                pub fn $tag<Rndr>() -> HtmlElement<[<$tag:camel>], (), (), Rndr>
+                where
+                    Rndr: Renderer
+                {
+                    HtmlElement {
+                        attributes: (),
+                        children: (),
+                        rndr: PhantomData,
+                        tag: [<$tag:camel>],
+                        #[cfg(debug_assertions)]
+                        defined_at: std::panic::Location::caller()
+                    }
+                }
 
-//                 #[$meta]
-//                 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-//                 pub struct [<$tag:camel>];
+                #[$meta]
+                #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+                pub struct [<$tag:camel>];
 
-//                 // Typed attribute methods
-//                 impl<At, Rndr> HtmlElement<[<$tag:camel>], At, (), Rndr>
-//                 where
-//                     At: Attribute<Rndr>,
-//                     Rndr: Renderer,
-//                 {
-//                     $(
-//                         #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
-//                         pub fn $attr<V>(self, value: V) -> HtmlElement<
-//                             [<$tag:camel>],
-//                             <At as NextTuple>::Output<Attr<leptos::tachys::attribute::[<$attr:camel>], V, Rndr>>,
-//                             (),
-//                             Rndr
-//                         >
-//                         where
-//                             V: AttributeValue<Rndr>,
-//                             At: NextTuple,
-//                             <At as NextTuple>::Output<Attr<leptos::tachys::attribute::[<$attr:camel>], V, Rndr>>: Attribute<Rndr>,
+                // // Typed attribute methods
+                // impl<At, Rndr> HtmlElement<[<$tag:camel>], At, (), Rndr>
+                // where
+                //     At: Attribute<Rndr>,
+                //     Rndr: Renderer,
+                // {
+                //     $(
+                //         #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
+                //         pub fn $attr<V>(self, value: V) -> HtmlElement<
+                //             [<$tag:camel>],
+                //             <At as NextTuple>::Output<Attr<leptos::tachys::attribute::[<$attr:camel>], V, Rndr>>,
+                //             (),
+                //             Rndr
+                //         >
+                //         where
+                //             V: AttributeValue<Rndr>,
+                //             At: NextTuple,
+                //             <At as NextTuple>::Output<Attr<leptos::tachys::attribute::[<$attr:camel>], V, Rndr>>: Attribute<Rndr>,
 
-//                         {
-//                             let HtmlElement { tag, rndr, children, attributes,
-//                                 #[cfg(debug_assertions)]
-//                                 defined_at
-//                             } = self;
-//                             HtmlElement {
-//                                 tag,
-//                                 rndr,
-//                                 children,
-//                                 attributes: attributes.next_tuple(leptos::tachys::attribute::$attr(value)),
-//                                 #[cfg(debug_assertions)]
-//                                 defined_at
-//                             }
-//                         }
-//                     )*
-//                 }
+                //         {
+                //             let HtmlElement { tag, rndr, children, attributes,
+                //                 #[cfg(debug_assertions)]
+                //                 defined_at
+                //             } = self;
+                //             HtmlElement {
+                //                 tag,
+                //                 rndr,
+                //                 children,
+                //                 attributes: attributes.next_tuple(leptos::tachys::attribute::$attr(value)),
+                //                 #[cfg(debug_assertions)]
+                //                 defined_at
+                //             }
+                //         }
+                //     )*
+                // }
 
-//                 impl ElementType for [<$tag:camel>] {
-//                     type Output = web_sys::$ty;
+                // impl ElementType for [<$tag:camel>] {
+                //     type Output = web_sys::$ty;
 
-//                     const TAG: &'static str = stringify!($tag);
-//                     const SELF_CLOSING: bool = true;
-//                     const ESCAPE_CHILDREN: bool = $escape;
+                //     const TAG: &'static str = stringify!($tag);
+                //     const SELF_CLOSING: bool = true;
+                //     const ESCAPE_CHILDREN: bool = $escape;
 
-//                     #[inline(always)]
-//                     fn tag(&self) -> &str {
-//                         Self::TAG
-//                     }
-//                 }
+                //     #[inline(always)]
+                //     fn tag(&self) -> &str {
+                //         Self::TAG
+                //     }
+                // }
 
-//                 // impl CreateElement<Dom> for [<$tag:camel>] {
-//                 //     fn create_element(&self) -> <Dom as Renderer>::Element {
-//                 //         use wasm_bindgen::JsCast;
+                impl CreateElement<LeptosDom> for [<$tag:camel>] {
+                    fn create_element(&self) -> <LeptosDom as Renderer>::Element {
+                        let data = ElementNodeData {
+                            name: qual_name(stringify!($tag), Some(stringify!($tag))),
+                            id: None,
+                            attrs: vec![],
+                            style_attribute: Default::default(),
+                            image: None,
+                            template_contents: None,
+                        };
 
-//                 //         thread_local! {
-//                 //             static ELEMENT: Lazy<<Dom as Renderer>::Element> = Lazy::new(|| {
-//                 //                 crate::dom::document().create_element(stringify!($tag)).unwrap()
-//                 //             });
-//                 //         }
-//                 //         ELEMENT.with(|e| e.clone_node()).unwrap().unchecked_into()
-//                 //     }
-//                 // }
-//             )*
-// 		}
-//     }
-// }
+                        let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));
 
-// html_self_closing_elements! {
-//     /// The `<area>` HTML element defines an area inside an image map that has predefined clickable areas. An image map allows geometric areas on an image to be associated with Hyperlink.
-//     area HtmlAreaElement [alt, coords, download, href, hreflang, ping, rel, shape, target] true,
-//     /// The `<base>` HTML element specifies the base URL to use for all relative URLs in a document. There can be only one `<base>` element in a document.
-//     base HtmlBaseElement [href, target] true,
-//     /// The `<br>` HTML element produces a line break in text (carriage-return). It is useful for writing a poem or an address, where the division of lines is significant.
-//     br HtmlBrElement [] true,
-//     /// The `<col>` HTML element defines a column within a table and is used for defining common semantics on all common cells. It is generally found within a colgroup element.
-//     col HtmlTableColElement [span] true,
-//     /// The `<embed>` HTML element embeds external content at the specified point in the document. This content is provided by an external application or other source of interactive content such as a browser plug-in.
-//     embed HtmlEmbedElement [height, src, r#type, width] true,
-//     /// The `<hr>` HTML element represents a thematic break between paragraph-level elements: for example, a change of scene in a story, or a shift of topic within a section.
-//     hr HtmlHrElement [] true,
-//     /// The `<img>` HTML element embeds an image into the document.
-//     img HtmlImageElement [alt, crossorigin, decoding, height, ismap, sizes, src, srcset, usemap, width] true,
-//     /// The `<input>` HTML element is used to create interactive controls for web-based forms in order to accept data from the user; a wide variety of types of input data and control widgets are available, depending on the device and user agent. The `<input>` element is one of the most powerful and complex in all of HTML due to the sheer number of combinations of input types and attributes.
-//     input HtmlInputElement [accept, alt, autocomplete, capture, checked, disabled, form, formaction, formenctype, formmethod, formnovalidate, formtarget, height, list, max, maxlength, min, minlength, multiple, name, pattern, placeholder, popovertarget, popovertargetaction, readonly, required, size, src, step, r#type, value, width] true,
-//     ///	The `<link>` HTML element specifies relationships between the current document and an external resource. This element is most commonly used to link to CSS, but is also used to establish site icons (both "favicon" style icons and icons for the home screen and apps on mobile devices) among other things.
-//     link HtmlLinkElement [r#as, blocking, crossorigin, fetchpriority, href, hreflang, imagesizes, imagesrcset, integrity, media, rel, referrerpolicy, sizes, r#type] true,
-//     ///	The `<meta>` HTML element represents Metadata that cannot be represented by other HTML meta-related elements, like base, link, script, style or title.
-//     meta HtmlMetaElement [charset, content, http_equiv, name] true,
-//     /// The `<source>` HTML element specifies multiple media resources for the picture, the audio element, or the video element. It is an empty element, meaning that it has no content and does not have a closing tag. It is commonly used to offer the same media content in multiple file formats in order to provide compatibility with a broad range of browsers given their differing support for image file formats and media file formats.
-//     source HtmlSourceElement [src, r#type] true,
-//     /// The `<track>` HTML element is used as a child of the media elements, audio and video. It lets you specify timed text tracks (or time-based data), for example to automatically handle subtitles. The tracks are formatted in WebVTT format (.vtt files) — Web Video Text Tracks.
-//     track HtmlTrackElement [default, kind, label, src, srclang] true,
-//     /// The `<wbr>` HTML element represents a word break opportunity—a position within text where the browser may optionally break a line, though its line-breaking rules would not otherwise create a break at that location.
-//     wbr HtmlElement [] true,
-// }
+                        Element(Node(id))
+                    }
+                }
+            )*
+		}
+    }
+}
+
+html_self_closing_elements! {
+    /// The `<area>` HTML element defines an area inside an image map that has predefined clickable areas. An image map allows geometric areas on an image to be associated with Hyperlink.
+    area HtmlAreaElement [alt, coords, download, href, hreflang, ping, rel, shape, target] true,
+    /// The `<base>` HTML element specifies the base URL to use for all relative URLs in a document. There can be only one `<base>` element in a document.
+    base HtmlBaseElement [href, target] true,
+    /// The `<br>` HTML element produces a line break in text (carriage-return). It is useful for writing a poem or an address, where the division of lines is significant.
+    br HtmlBrElement [] true,
+    /// The `<col>` HTML element defines a column within a table and is used for defining common semantics on all common cells. It is generally found within a colgroup element.
+    col HtmlTableColElement [span] true,
+    /// The `<embed>` HTML element embeds external content at the specified point in the document. This content is provided by an external application or other source of interactive content such as a browser plug-in.
+    embed HtmlEmbedElement [height, src, r#type, width] true,
+    /// The `<hr>` HTML element represents a thematic break between paragraph-level elements: for example, a change of scene in a story, or a shift of topic within a section.
+    hr HtmlHrElement [] true,
+    /// The `<img>` HTML element embeds an image into the document.
+    img HtmlImageElement [alt, crossorigin, decoding, height, ismap, sizes, src, srcset, usemap, width] true,
+    /// The `<input>` HTML element is used to create interactive controls for web-based forms in order to accept data from the user; a wide variety of types of input data and control widgets are available, depending on the device and user agent. The `<input>` element is one of the most powerful and complex in all of HTML due to the sheer number of combinations of input types and attributes.
+    input HtmlInputElement [accept, alt, autocomplete, capture, checked, disabled, form, formaction, formenctype, formmethod, formnovalidate, formtarget, height, list, max, maxlength, min, minlength, multiple, name, pattern, placeholder, popovertarget, popovertargetaction, readonly, required, size, src, step, r#type, value, width] true,
+    ///	The `<link>` HTML element specifies relationships between the current document and an external resource. This element is most commonly used to link to CSS, but is also used to establish site icons (both "favicon" style icons and icons for the home screen and apps on mobile devices) among other things.
+    link HtmlLinkElement [r#as, blocking, crossorigin, fetchpriority, href, hreflang, imagesizes, imagesrcset, integrity, media, rel, referrerpolicy, sizes, r#type] true,
+    ///	The `<meta>` HTML element represents Metadata that cannot be represented by other HTML meta-related elements, like base, link, script, style or title.
+    meta HtmlMetaElement [charset, content, http_equiv, name] true,
+    /// The `<source>` HTML element specifies multiple media resources for the picture, the audio element, or the video element. It is an empty element, meaning that it has no content and does not have a closing tag. It is commonly used to offer the same media content in multiple file formats in order to provide compatibility with a broad range of browsers given their differing support for image file formats and media file formats.
+    source HtmlSourceElement [src, r#type] true,
+    /// The `<track>` HTML element is used as a child of the media elements, audio and video. It lets you specify timed text tracks (or time-based data), for example to automatically handle subtitles. The tracks are formatted in WebVTT format (.vtt files) — Web Video Text Tracks.
+    track HtmlTrackElement [default, kind, label, src, srclang] true,
+    /// The `<wbr>` HTML element represents a word break opportunity—a position within text where the browser may optionally break a line, though its line-breaking rules would not otherwise create a break at that location.
+    wbr HtmlElement [] true,
+}
 
 html_elements! {
     /// The `<a>` HTML element (or anchor element), with its href attribute, creates a hyperlink to web pages, files, email addresses, locations in the same page, or anything else a URL can address.
