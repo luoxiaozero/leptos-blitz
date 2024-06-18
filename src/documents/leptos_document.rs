@@ -1,39 +1,35 @@
-use crate::dom::{Element, IntoView, LeptosDom};
+use crate::dom::{Element, IntoView, LeptosDom, Node};
 use any_spawner::Executor;
 use blitz::Viewport;
-use blitz_dom::{Document, DocumentLike};
+use blitz_dom::{document, Document, DocumentLike};
 use leptos::{
-    context::{provide_context, use_context},
     reactive_graph::owner::Owner,
     tachys::view::{Mountable, Render},
 };
-use send_wrapper::SendWrapper;
-use std::sync::Arc;
+use std::cell::RefCell;
+
+thread_local! {
+    static DOCUMENT: RefCell<Option<Document>> = RefCell::new(None);
+}
 
 pub struct LeptosDocument {
-    inner: Arc<Document>,
+    #[allow(dead_code)]
     unmount_handle: UnmountHandle,
 }
 
 impl AsRef<Document> for LeptosDocument {
     fn as_ref(&self) -> &Document {
-        self.inner.as_ref()
+        LeptosDocument::document()
     }
 }
 impl AsMut<Document> for LeptosDocument {
     fn as_mut(&mut self) -> &mut Document {
-        Arc::get_mut(&mut self.inner).unwrap()
+        LeptosDocument::document_mut()
     }
 }
 impl Into<Document> for LeptosDocument {
     fn into(self) -> Document {
-        match Arc::try_unwrap(self.inner) {
-            Ok(value) => value,
-            Err(arc) => panic!(
-                "Failed to unwrap, still {} references",
-                Arc::strong_count(&arc)
-            ),
-        }
+        LeptosDocument::document_take()
     }
 }
 
@@ -58,18 +54,18 @@ impl LeptosDocument {
         F: FnOnce() -> N + 'static,
         N: IntoView + 'static,
     {
-        let device = Viewport::new((0, 0)).make_device();
-        let document = Arc::new(Document::new(device));
+        DOCUMENT.with(|doc| {
+            let device = Viewport::new((0, 0)).make_device();
+            let document = Document::new(device);
+            *doc.borrow_mut() = Some(document);
+        });
 
-        let unmount_handle = LeptosDocument::mount_to(SendWrapper::new(document.clone()), f);
+        let unmount_handle = LeptosDocument::mount_to(f);
 
-        LeptosDocument {
-            inner: document,
-            unmount_handle,
-        }
+        LeptosDocument { unmount_handle }
     }
 
-    fn mount_to<F, N>(document: SendWrapper<Arc<Document>>, f: F) -> UnmountHandle
+    fn mount_to<F, N>(f: F) -> UnmountHandle
     where
         F: FnOnce() -> N + 'static,
         N: IntoView + 'static,
@@ -78,14 +74,12 @@ impl LeptosDocument {
 
         let owner = Owner::new();
         let mountable = owner.with(move || {
-            provide_context(document.clone());
-
             let view = f().into_view();
             let mut mountable = view.build();
 
-            let root_node_id = document.root_node().id;
+            let root_node_id = LeptosDocument::document().root_node().id;
 
-            mountable.mount(&Element(root_node_id), None);
+            mountable.mount(&Element(Node(root_node_id)), None);
 
             Box::new(mountable) as Box<dyn Mountable<LeptosDom>>
         });
@@ -93,8 +87,37 @@ impl LeptosDocument {
         UnmountHandle { owner, mountable }
     }
 
-    pub fn use_document() -> SendWrapper<Arc<Document>> {
-        use_context().expect("SendWrapper<Arc<Document>>")
+    pub fn document() -> &'static Document {
+        DOCUMENT.with(|doc| {
+            let borrowed_doc = doc.borrow();
+            if let Some(ref document) = *borrowed_doc {
+                unsafe { std::mem::transmute::<&Document, &'static Document>(document) }
+            } else {
+                panic!("Document is None");
+            }
+        })
+    }
+
+    pub fn document_mut() -> &'static mut Document {
+        DOCUMENT.with(|doc| {
+            let mut borrowed_doc = doc.borrow_mut();
+            if let Some(ref mut document) = *borrowed_doc {
+                unsafe { std::mem::transmute::<&mut Document, &'static mut Document>(document) }
+            } else {
+                panic!("Document is None");
+            }
+        })
+    }
+
+    pub fn document_take() -> Document {
+        DOCUMENT.with(|doc| {
+            let mut borrowed_doc = doc.borrow_mut();
+            if let Some(document) = borrowed_doc.take() {
+                document
+            } else {
+                panic!("Document is None");
+            }
+        })
     }
 }
 

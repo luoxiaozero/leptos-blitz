@@ -1,5 +1,3 @@
-use std::{borrow::BorrowMut, ops::DerefMut, sync::Arc};
-
 use crate::LeptosDocument;
 use leptos::tachys::{
     renderer::{CastFrom, Renderer},
@@ -16,11 +14,13 @@ impl Renderer for LeptosDom {
     type Placeholder = Element;
 
     fn intern(text: &str) -> &str {
-        todo!()
+        text
     }
 
     fn create_text_node(text: &str) -> Self::Text {
-        todo!()
+        let doc = LeptosDocument::document_mut();
+        let id = doc.create_text_node(text);
+        Text(Node(id))
     }
 
     fn create_placeholder() -> Self::Placeholder {
@@ -40,12 +40,11 @@ impl Renderer for LeptosDom {
     }
 
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
-        let mut doc = LeptosDocument::use_document().take();
-        let doc = Arc::get_mut(&mut doc).unwrap();
+        let doc = LeptosDocument::document_mut();
         if let Some(marker) = marker {
             doc.insert_before(new_child.0, &[marker.0]);
         } else {
-            let parent_id = parent.0;
+            let parent_id = parent.0.0;
             let parent = doc.get_node_mut(parent_id).unwrap();
             parent.children.push(new_child.0);
         }
@@ -90,6 +89,7 @@ impl Mountable<LeptosDom> for Node {
         parent: &<LeptosDom as Renderer>::Element,
         marker: Option<&<LeptosDom as Renderer>::Node>,
     ) {
+        LeptosDom::insert_node(parent, self, marker);
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
@@ -101,7 +101,7 @@ impl Mountable<LeptosDom> for Node {
 pub struct Node(pub usize);
 
 #[derive(Debug, Clone)]
-pub struct Element(pub usize);
+pub struct Element(pub Node);
 
 impl Mountable<LeptosDom> for Element {
     fn unmount(&mut self) {
@@ -113,7 +113,7 @@ impl Mountable<LeptosDom> for Element {
         parent: &<LeptosDom as Renderer>::Element,
         marker: Option<&<LeptosDom as Renderer>::Node>,
     ) {
-        todo!()
+        LeptosDom::insert_node(parent, self.as_ref(), marker);
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
@@ -129,12 +129,12 @@ impl CastFrom<Node> for Element {
 
 impl AsRef<Node> for Element {
     fn as_ref(&self) -> &Node {
-        todo!()
+        &self.0
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Text(pub usize);
+pub struct Text(pub Node);
 
 impl Mountable<LeptosDom> for Text {
     fn unmount(&mut self) {
@@ -146,7 +146,7 @@ impl Mountable<LeptosDom> for Text {
         parent: &<LeptosDom as Renderer>::Element,
         marker: Option<&<LeptosDom as Renderer>::Node>,
     ) {
-        todo!()
+        LeptosDom::insert_node(parent, self.as_ref(), marker);
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
@@ -162,6 +162,6 @@ impl CastFrom<Node> for Text {
 
 impl AsRef<Node> for Text {
     fn as_ref(&self) -> &Node {
-        todo!()
+        &self.0
     }
 }
