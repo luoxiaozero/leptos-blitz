@@ -7,7 +7,7 @@ use leptos::tachys::{
         element::CreateElement,
     },
     renderer::Renderer,
-    view::Render
+    view::Render,
 };
 use next_tuple::NextTuple;
 use std::{fmt::Debug, marker::PhantomData};
@@ -94,14 +94,7 @@ macro_rules! html_elements {
 
                 impl CreateElement<LeptosDom> for [<$tag:camel>] {
                     fn create_element(&self) -> <LeptosDom as Renderer>::Element {
-                        let data = ElementNodeData {
-                            name: qual_name(stringify!($tag), Some(stringify!($tag))),
-                            id: None,
-                            attrs: vec![],
-                            style_attribute: Default::default(),
-                            image: None,
-                            template_contents: None,
-                        };
+                        let data = ElementNodeData::new(qual_name(stringify!($tag), Some(stringify!($tag))), vec![]);
 
                         let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));
 
@@ -192,14 +185,7 @@ macro_rules! html_self_closing_elements {
 
                 impl CreateElement<LeptosDom> for [<$tag:camel>] {
                     fn create_element(&self) -> <LeptosDom as Renderer>::Element {
-                        let data = ElementNodeData {
-                            name: qual_name(stringify!($tag), Some(stringify!($tag))),
-                            id: None,
-                            attrs: vec![],
-                            style_attribute: Default::default(),
-                            image: None,
-                            template_contents: None,
-                        };
+                        let data = ElementNodeData::new(qual_name(stringify!($tag), Some(stringify!($tag))), vec![]);
 
                         let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));
 

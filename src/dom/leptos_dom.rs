@@ -42,18 +42,7 @@ impl Renderer for LeptosDom {
             value: "none".to_string(),
         };
 
-        let data = ElementNodeData {
-            name: QualName {
-                prefix: None,
-                ns: Atom::from("div"),
-                local: Atom::from("div"),
-            },
-            id: None,
-            attrs: vec![display],
-            style_attribute: Default::default(),
-            image: None,
-            template_contents: None,
-        };
+        let data = ElementNodeData::new(qual_name("div", Some("div")), vec![display]);
 
         // NodeData::Comment
         let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));

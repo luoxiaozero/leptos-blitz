@@ -11,6 +11,7 @@ any_spawner = { git = "https://github.com/leptos-rs/leptos", branch = "leptos_0.
 next_tuple = { git = "https://github.com/leptos-rs/leptos", branch = "leptos_0.7" }
 blitz = { git = "https://github.com/DioxusLabs/blitz" }
 blitz-dom = { git = "https://github.com/DioxusLabs/blitz" }
+style = { git = "https://github.com/servo/stylo", rev = "039959d" }
 send_wrapper = "0.6.0"
 paste = "1"
 tokio = { version = "1.25.0", features = ["full"] }
