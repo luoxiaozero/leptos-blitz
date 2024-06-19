@@ -94,7 +94,7 @@ macro_rules! html_elements {
 
                 impl CreateElement<LeptosDom> for [<$tag:camel>] {
                     fn create_element(&self) -> <LeptosDom as Renderer>::Element {
-                        let data = ElementNodeData::new(qual_name(stringify!($tag), Some(stringify!($tag))), vec![]);
+                        let data = ElementNodeData::new(qual_name(stringify!($tag), None), vec![]);
 
                         let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));
 
@@ -185,7 +185,7 @@ macro_rules! html_self_closing_elements {
 
                 impl CreateElement<LeptosDom> for [<$tag:camel>] {
                     fn create_element(&self) -> <LeptosDom as Renderer>::Element {
-                        let data = ElementNodeData::new(qual_name(stringify!($tag), Some(stringify!($tag))), vec![]);
+                        let data = ElementNodeData::new(qual_name(stringify!($tag), None), vec![]);
 
                         let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));
 

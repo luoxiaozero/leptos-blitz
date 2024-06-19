@@ -1,7 +1,8 @@
 use crate::{
     documents::LeptosDocument,
     waker::{EventData, UserWindowEvent},
-    window::View, IntoView,
+    window::View,
+    IntoView,
 };
 use blitz::RenderState;
 use blitz_dom::DocumentLike;
@@ -38,7 +39,7 @@ fn launch_with_window<Doc: DocumentLike + 'static>(window: View<'static, Doc>) {
     let proxy = event_loop.create_proxy();
 
     // Multiwindow ftw
-    let mut windows: HashMap<WindowId, window::View<'_, Doc>> = HashMap::new();
+    let mut windows: HashMap<WindowId, View<'_, Doc>> = HashMap::new();
     let mut pending_windows = Vec::new();
 
     pending_windows.push(window);
@@ -138,4 +139,3 @@ fn launch_with_window<Doc: DocumentLike + 'static>(window: View<'static, Doc>) {
         }
     });
 }
-

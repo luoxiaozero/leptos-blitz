@@ -42,7 +42,7 @@ impl Renderer for LeptosDom {
             value: "none".to_string(),
         };
 
-        let data = ElementNodeData::new(qual_name("div", Some("div")), vec![display]);
+        let data = ElementNodeData::new(qual_name("div", None), vec![display]);
 
         // NodeData::Comment
         let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));
@@ -74,7 +74,7 @@ impl Renderer for LeptosDom {
                 existing_attr.value = value.to_string();
             } else {
                 element.attrs.push(Attribute {
-                    name: qual_name(name, Some(name)),
+                    name: qual_name(name, None),
                     value: value.to_string(),
                 });
             }
