@@ -57,7 +57,9 @@ impl LeptosDocument {
     {
         DOCUMENT.with(|doc| {
             let device = Viewport::new((0, 0)).make_device();
-            let document = Document::new(device);
+            let mut document = Document::new(device);
+            document.add_stylesheet(include_str!("./default.css"));
+            
             *doc.borrow_mut() = Some(document);
         });
 

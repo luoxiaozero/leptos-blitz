@@ -1,4 +1,4 @@
-use crate::LeptosDocument;
+use crate::documents::LeptosDocument;
 use blitz_dom::{namespace_url, node::Attribute, ns, Atom, ElementNodeData, NodeData, QualName};
 use leptos::tachys::{
     renderer::{CastFrom, Renderer},
@@ -112,9 +112,16 @@ impl Renderer for LeptosDom {
         if let Some(marker) = marker {
             doc.insert_before(new_child.0, &[marker.0]);
         } else {
-            let parent_id = parent.0 .0;
-            let parent = doc.get_node_mut(parent_id).unwrap();
-            parent.children.push(new_child.0);
+            let parent_id = parent.node_id();
+            let child_idx = {
+                let parent = doc.get_node_mut(parent_id).unwrap();
+                parent.children.push(new_child.0);
+                parent.children.len() - 1
+            };
+
+            let node = doc.get_node_mut(new_child.node_id()).unwrap();
+            node.child_idx = child_idx;
+            node.parent = Some(parent_id);
         }
     }
 
