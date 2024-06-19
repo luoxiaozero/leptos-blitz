@@ -5,6 +5,16 @@ fn main() {
         div()
             .child("123")
             .child(br())
-            .child(div().child(span().child("child")))
+            .child(
+                div()
+                    .style("display: block;")
+                    .child(span().style("color:red;").child("child"))
+                    .child(button().child("+1")),
+            )
+            .child(
+                a().href("https://github.com/leptos-rs/leptos")
+                    .target("_blank")
+                    .child("Leptos"),
+            )
     })
 }

@@ -89,6 +89,10 @@ impl Renderer for LeptosDom {
                     value: value.to_string(),
                 });
             }
+            if name == "style" {
+                let doc = LeptosDocument::document();
+                element.flush_style_attribute(doc.guard());
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 pub mod element;
+mod html;
 mod leptos_dom;
 mod view;
 

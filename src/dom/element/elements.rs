@@ -1,7 +1,15 @@
 use super::{super::leptos_dom::qual_name, ElementWithChildren, HtmlElement};
 use crate::{documents::LeptosDocument, Element, LeptosDom, Node};
 use blitz_dom::{ElementNodeData, NodeData};
-use leptos::tachys::{html::element::CreateElement, renderer::Renderer};
+use leptos::tachys::{
+    html::{
+        attribute::{Attr, Attribute, AttributeValue},
+        element::CreateElement,
+    },
+    renderer::Renderer,
+    view::Render
+};
+use next_tuple::NextTuple;
 use std::{fmt::Debug, marker::PhantomData};
 
 macro_rules! html_elements {
@@ -34,40 +42,40 @@ macro_rules! html_elements {
                 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
                 pub struct [<$tag:camel>];
 
-                // // Typed attribute methods
-                // impl<At, Ch, Rndr> HtmlElement<[<$tag:camel>], At, Ch, Rndr>
-                // where
-                //     At: Attribute<Rndr>,
-                //     Ch: Render<Rndr>,
-                //     Rndr: Renderer,
-                // {
-                //     $(
-                //         #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
-                //         pub fn $attr<V>(self, value: V) -> HtmlElement <
-                //             [<$tag:camel>],
-                //             <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V, Rndr>>,
-                //             Ch, Rndr
-                //         >
-                //         where
-                //             V: AttributeValue<Rndr>,
-                //             At: NextTuple,
-                //             <At as NextTuple>::Output<Attr<leptos::tachys::attribute::[<$attr:camel>], V, Rndr>>: Attribute<Rndr>,
-                //         {
-                //             let HtmlElement { tag, rndr, children, attributes,
-                //                 #[cfg(debug_assertions)]
-                //                 defined_at
-                //             } = self;
-                //             HtmlElement {
-                //                 tag,
-                //                 rndr,
-                //                 children,
-                //                 attributes: attributes.next_tuple(leptos::tachys::attribute::$attr(value)),
-                //                 #[cfg(debug_assertions)]
-                //                 defined_at
-                //             }
-                //         }
-                //     )*
-                // }
+                // Typed attribute methods
+                impl<At, Ch, Rndr> HtmlElement<[<$tag:camel>], At, Ch, Rndr>
+                where
+                    At: Attribute<Rndr>,
+                    Ch: Render<Rndr>,
+                    Rndr: Renderer,
+                {
+                    $(
+                        #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
+                        pub fn $attr<V>(self, value: V) -> HtmlElement <
+                            [<$tag:camel>],
+                            <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V, Rndr>>,
+                            Ch, Rndr
+                        >
+                        where
+                            V: AttributeValue<Rndr>,
+                            At: NextTuple,
+                            <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V, Rndr>>: Attribute<Rndr>,
+                        {
+                            let HtmlElement { tag, rndr, children, attributes,
+                                #[cfg(debug_assertions)]
+                                defined_at
+                            } = self;
+                            HtmlElement {
+                                tag,
+                                rndr,
+                                children,
+                                attributes: attributes.next_tuple(leptos::tachys::html::attribute::$attr(value)),
+                                #[cfg(debug_assertions)]
+                                defined_at
+                            }
+                        }
+                    )*
+                }
 
                 // impl ElementType for [<$tag:camel>] {
                 //     type Output = web_sys::$ty;
@@ -133,41 +141,41 @@ macro_rules! html_self_closing_elements {
                 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
                 pub struct [<$tag:camel>];
 
-                // // Typed attribute methods
-                // impl<At, Rndr> HtmlElement<[<$tag:camel>], At, (), Rndr>
-                // where
-                //     At: Attribute<Rndr>,
-                //     Rndr: Renderer,
-                // {
-                //     $(
-                //         #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
-                //         pub fn $attr<V>(self, value: V) -> HtmlElement<
-                //             [<$tag:camel>],
-                //             <At as NextTuple>::Output<Attr<leptos::tachys::attribute::[<$attr:camel>], V, Rndr>>,
-                //             (),
-                //             Rndr
-                //         >
-                //         where
-                //             V: AttributeValue<Rndr>,
-                //             At: NextTuple,
-                //             <At as NextTuple>::Output<Attr<leptos::tachys::attribute::[<$attr:camel>], V, Rndr>>: Attribute<Rndr>,
+                // Typed attribute methods
+                impl<At, Rndr> HtmlElement<[<$tag:camel>], At, (), Rndr>
+                where
+                    At: Attribute<Rndr>,
+                    Rndr: Renderer,
+                {
+                    $(
+                        #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
+                        pub fn $attr<V>(self, value: V) -> HtmlElement<
+                            [<$tag:camel>],
+                            <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V, Rndr>>,
+                            (),
+                            Rndr
+                        >
+                        where
+                            V: AttributeValue<Rndr>,
+                            At: NextTuple,
+                            <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V, Rndr>>: Attribute<Rndr>,
 
-                //         {
-                //             let HtmlElement { tag, rndr, children, attributes,
-                //                 #[cfg(debug_assertions)]
-                //                 defined_at
-                //             } = self;
-                //             HtmlElement {
-                //                 tag,
-                //                 rndr,
-                //                 children,
-                //                 attributes: attributes.next_tuple(leptos::tachys::attribute::$attr(value)),
-                //                 #[cfg(debug_assertions)]
-                //                 defined_at
-                //             }
-                //         }
-                //     )*
-                // }
+                        {
+                            let HtmlElement { tag, rndr, children, attributes,
+                                #[cfg(debug_assertions)]
+                                defined_at
+                            } = self;
+                            HtmlElement {
+                                tag,
+                                rndr,
+                                children,
+                                attributes: attributes.next_tuple(leptos::tachys::html::attribute::$attr(value)),
+                                #[cfg(debug_assertions)]
+                                defined_at
+                            }
+                        }
+                    )*
+                }
 
                 // impl ElementType for [<$tag:camel>] {
                 //     type Output = web_sys::$ty;

@@ -59,11 +59,13 @@ impl LeptosDocument {
             let device = Viewport::new((0, 0)).make_device();
             let mut document = Document::new(device);
             document.add_stylesheet(include_str!("./default.css"));
-            
+
             *doc.borrow_mut() = Some(document);
         });
 
         let unmount_handle = LeptosDocument::mount_to(f);
+
+        LeptosDocument::document().print_tree();
 
         LeptosDocument { unmount_handle }
     }
