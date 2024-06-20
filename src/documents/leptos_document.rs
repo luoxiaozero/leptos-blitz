@@ -6,11 +6,13 @@ use crate::dom::{
 use any_spawner::Executor;
 use blitz::Viewport;
 use blitz_dom::{Document, DocumentLike};
+use futures_util::FutureExt;
 use leptos::{
     reactive_graph::owner::Owner,
     tachys::view::{Mountable, Render},
 };
 use std::cell::RefCell;
+use tokio::task::LocalSet;
 
 thread_local! {
     static DOCUMENT: RefCell<Option<Document>> = RefCell::new(None);
@@ -20,6 +22,7 @@ pub struct LeptosDocument {
     #[allow(dead_code)]
     owner: Owner,
     mountable: Box<dyn Mountable<LeptosDom>>,
+    local_set: LocalSet,
 }
 
 impl AsRef<Document> for LeptosDocument {
@@ -39,19 +42,10 @@ impl Into<Document> for LeptosDocument {
 }
 
 impl DocumentLike for LeptosDocument {
-    fn poll(&mut self, _cx: std::task::Context) -> bool {
-        // TODO
-        // loop {
-        //     {
-        //         // pin_mut!(fut);
+    fn poll(&mut self, mut cx: std::task::Context) -> bool {
+        let _ = self.local_set.poll_unpin(&mut cx);
 
-        //         // match fut.poll_unpin(&mut cx) {
-        //         //     std::task::Poll::Ready(_) => {}
-        //         //     std::task::Poll::Pending => break,
-        //         // }
-        //     }
-        // }
-        false
+        true
     }
 
     fn handle_event(&mut self, event: blitz_dom::events::RendererEvent) -> bool {
@@ -115,11 +109,17 @@ impl LeptosDocument {
             *doc.borrow_mut() = Some(document);
         });
 
-        let (owner, mountable) = mount(rt, f);
+        let local_set = LocalSet::new();
+
+        let (owner, mountable) = local_set.block_on(rt, async { mount(f) });
 
         LeptosDocument::document().print_tree();
 
-        Self { owner, mountable }
+        Self {
+            owner,
+            mountable,
+            local_set,
+        }
     }
 
     pub fn document() -> &'static Document {
@@ -162,26 +162,23 @@ impl Drop for LeptosDocument {
     }
 }
 
-fn mount<F, N>(rt: &tokio::runtime::Runtime, f: F) -> (Owner, Box<dyn Mountable<LeptosDom>>)
+fn mount<F, N>(f: F) -> (Owner, Box<dyn Mountable<LeptosDom>>)
 where
     F: FnOnce() -> N + 'static,
     N: IntoView + 'static,
 {
     _ = Executor::init_tokio();
 
-    let local_set = tokio::task::LocalSet::new();
     let owner = Owner::new();
-    let mountable = local_set.block_on(rt, async {
-        owner.with(move || {
-            let view = f().into_view();
-            let mut mountable = view.build();
+    let mountable = owner.with(move || {
+        let view = f().into_view();
+        let mut mountable = view.build();
 
-            let root_node_id = LeptosDocument::document().root_node().id;
+        let root_node_id = LeptosDocument::document().root_node().id;
 
-            mountable.mount(&Element(Node(root_node_id)), None);
+        mountable.mount(&Element(Node(root_node_id)), None);
 
-            Box::new(mountable) as Box<dyn Mountable<LeptosDom>>
-        })
+        Box::new(mountable) as Box<dyn Mountable<LeptosDom>>
     });
 
     (owner, mountable)
