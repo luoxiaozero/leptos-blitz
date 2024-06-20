@@ -19,8 +19,9 @@ style = { git = "https://github.com/servo/stylo", rev = "039959d" }
 send_wrapper = "0.6.0"
 paste = "1"
 tokio = { version = "1.25.0", features = ["full"] }
-tao = { version = "0.26.1", features = ["serde"] }
 futures-util = "0.3.30"
 vello = { version = "0.1", features = ["wgpu"] }
 muda = { version = "0.11.5", features = ["serde"] }
 slotmap = "1.0.7"
+winit = "0.30.2"
+wgpu = "0.19"
