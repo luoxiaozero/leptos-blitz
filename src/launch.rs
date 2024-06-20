@@ -20,20 +20,21 @@ where
     F: FnOnce() -> N + 'static,
     N: IntoView + 'static,
 {
-    let document = LeptosDocument::new(f);
-    let window = View::new(document);
-    launch_with_window(window);
-}
-
-fn launch_with_window<Doc: DocumentLike + 'static>(window: View<'static, Doc>) {
-    // Turn on the runtime and enter it
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap();
-
     let _guard = rt.enter();
 
+    let document = LeptosDocument::new(&rt, f);
+    let window = View::new(document);
+    launch_with_window(rt, window);
+}
+
+fn launch_with_window<Doc: DocumentLike + 'static>(
+    rt: tokio::runtime::Runtime,
+    window: View<'static, Doc>,
+) {
     // Build an event loop for the application
     let event_loop = EventLoopBuilder::<UserWindowEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();

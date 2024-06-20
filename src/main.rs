@@ -2,12 +2,17 @@ use leptos_blitz::{ev, html::*, prelude::*};
 
 fn main() {
     launch(move || {
+        let count = RwSignal::new(0);
+
         div()
             .child("123")
             .child(br())
             .child(
                 div()
-                    .child(span().style("color:red;").child("child"))
+                    .on(ev::click, move |_| {
+                        count.set(count.get_untracked() + 12);
+                    })
+                    .child(span().style("color:red;").child(move || count.get()))
                     .child(
                         button()
                             .on(ev::click, move |_| {

@@ -102,7 +102,7 @@ impl DocumentLike for LeptosDocument {
 }
 
 impl LeptosDocument {
-    pub fn new<F, N>(f: F) -> Self
+    pub fn new<F, N>(rt: &tokio::runtime::Runtime, f: F) -> Self
     where
         F: FnOnce() -> N + 'static,
         N: IntoView + 'static,
@@ -115,7 +115,7 @@ impl LeptosDocument {
             *doc.borrow_mut() = Some(document);
         });
 
-        let (owner, mountable) = mount(f);
+        let (owner, mountable) = mount(rt, f);
 
         LeptosDocument::document().print_tree();
 
@@ -162,23 +162,26 @@ impl Drop for LeptosDocument {
     }
 }
 
-fn mount<F, N>(f: F) -> (Owner, Box<dyn Mountable<LeptosDom>>)
+fn mount<F, N>(rt: &tokio::runtime::Runtime, f: F) -> (Owner, Box<dyn Mountable<LeptosDom>>)
 where
     F: FnOnce() -> N + 'static,
     N: IntoView + 'static,
 {
     _ = Executor::init_tokio();
+
+    let local_set = tokio::task::LocalSet::new();
     let owner = Owner::new();
+    let mountable = local_set.block_on(rt, async {
+        owner.with(move || {
+            let view = f().into_view();
+            let mut mountable = view.build();
 
-    let mountable = owner.with(move || {
-        let view = f().into_view();
-        let mut mountable = view.build();
+            let root_node_id = LeptosDocument::document().root_node().id;
 
-        let root_node_id = LeptosDocument::document().root_node().id;
+            mountable.mount(&Element(Node(root_node_id)), None);
 
-        mountable.mount(&Element(Node(root_node_id)), None);
-
-        Box::new(mountable) as Box<dyn Mountable<LeptosDom>>
+            Box::new(mountable) as Box<dyn Mountable<LeptosDom>>
+        })
     });
 
     (owner, mountable)

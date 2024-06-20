@@ -279,6 +279,7 @@ impl Mountable<LeptosDom> for Text {
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
+        println!("33333");
         let parent = LeptosDom::get_parent(self.as_ref()).and_then(Element::cast_from);
         if let Some(parent) = parent {
             child.mount(&parent, Some(self.as_ref()));
