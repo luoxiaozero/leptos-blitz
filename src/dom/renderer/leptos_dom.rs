@@ -1,17 +1,9 @@
-use crate::documents::LeptosDocument;
-use blitz_dom::{namespace_url, node::Attribute, ns, Atom, ElementNodeData, NodeData, QualName};
+use crate::{documents::LeptosDocument, dom::qual_name};
+use blitz_dom::{node::Attribute, Atom, ElementNodeData, NodeData, QualName};
 use leptos::tachys::{
     renderer::{CastFrom, Renderer},
     view::Mountable,
 };
-
-pub fn qual_name(local_name: &str, namespace: Option<&str>) -> QualName {
-    QualName {
-        prefix: None,
-        ns: namespace.map(Atom::from).unwrap_or(ns!(html)),
-        local: Atom::from(local_name),
-    }
-}
 
 #[derive(Debug)]
 pub struct LeptosDom;

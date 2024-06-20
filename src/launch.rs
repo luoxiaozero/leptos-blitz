@@ -1,8 +1,8 @@
 use crate::{
     documents::LeptosDocument,
+    dom::IntoView,
     waker::{EventData, UserWindowEvent},
     window::View,
-    IntoView,
 };
 use blitz::RenderState;
 use blitz_dom::DocumentLike;

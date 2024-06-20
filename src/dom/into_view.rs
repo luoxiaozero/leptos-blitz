@@ -1,4 +1,4 @@
-use super::LeptosDom;
+use super::renderer::leptos_dom::LeptosDom;
 use leptos::prelude::Render;
 
 pub struct View<T>(T)

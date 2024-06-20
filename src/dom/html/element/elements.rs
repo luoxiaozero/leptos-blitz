@@ -1,5 +1,11 @@
-use super::{super::leptos_dom::qual_name, ElementWithChildren, HtmlElement};
-use crate::{documents::LeptosDocument, Element, LeptosDom, Node};
+use super::{ElementWithChildren, HtmlElement};
+use crate::{
+    documents::LeptosDocument,
+    dom::{
+        qual_name,
+        renderer::leptos_dom::{Element, LeptosDom, Node},
+    },
+};
 use blitz_dom::{ElementNodeData, NodeData};
 use leptos::tachys::{
     html::{

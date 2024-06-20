@@ -1,5 +1,4 @@
-use super::attribute::Attr;
-use crate::element::HtmlElement;
+use super::{attribute::Attr, element::HtmlElement};
 use leptos::tachys::{
     html::attribute::{Attribute, AttributeKey, AttributeValue},
     renderer::Renderer,
