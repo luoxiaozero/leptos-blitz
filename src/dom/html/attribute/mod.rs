@@ -1,3 +1,5 @@
+pub mod on;
+
 use leptos::tachys::{
     html::attribute::{Attribute, AttributeKey, AttributeValue, NextAttribute},
     renderer::Renderer,

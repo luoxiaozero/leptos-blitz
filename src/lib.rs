@@ -11,4 +11,5 @@ pub mod prelude {
 }
 
 pub use dom::html::element as html;
+pub use dom::html::event as ev;
 pub use leptos;

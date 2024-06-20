@@ -1,4 +1,5 @@
 use crate::dom::{
+    html::event::Event,
     renderer::leptos_dom::{Element, LeptosDom, Node},
     IntoView,
 };
@@ -16,7 +17,8 @@ thread_local! {
 }
 
 pub struct LeptosDocument {
-    pub owner: Owner,
+    #[allow(dead_code)]
+    owner: Owner,
     mountable: Box<dyn Mountable<LeptosDom>>,
 }
 
@@ -86,13 +88,9 @@ impl DocumentLike for LeptosDocument {
             };
 
             for attr in element.attrs() {
-                if attr.name.local.as_ref() == "data-dioxus-id" {
-                    if let Ok(value) = attr.value.parse::<usize>() {
-                        // let id = ElementId(value);
-                        // // let data = dioxus::html::EventData::Mouse()
-
-                        // let data = Rc::new(PlatformEventData::new(Box::new(NativeClickData {})));
-                        // self.vdom.handle_event("click", data, id, true);
+                if attr.name.local.as_ref() == "onclick" {
+                    if let Ok(key) = attr.value.parse::<u64>() {
+                        Event::call_mut(key);
                         return true;
                     }
                 }

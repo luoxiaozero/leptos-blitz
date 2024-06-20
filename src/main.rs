@@ -1,4 +1,4 @@
-use leptos_blitz::{html::*, prelude::*};
+use leptos_blitz::{ev, html::*, prelude::*};
 
 fn main() {
     launch(move || {
@@ -7,9 +7,14 @@ fn main() {
             .child(br())
             .child(
                 div()
-                    .style("display: block;")
                     .child(span().style("color:red;").child("child"))
-                    .child(button().child("+1")),
+                    .child(
+                        button()
+                            .on(ev::click, move |_| {
+                                println!("click +1");
+                            })
+                            .child("+1"),
+                    ),
             )
             .child(
                 a().href("https://github.com/leptos-rs/leptos")
