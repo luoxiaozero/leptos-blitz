@@ -52,6 +52,9 @@ fn launch_with_window<Doc: DocumentLike + 'static>(
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     let mut initial = true;
 
+    // the move to winit wants us to use a struct with a run method instead of the callback approach
+    // we want to just keep the callback approach for now
+    #[allow(deprecated)]
     event_loop
         .run(move |event, event_loop| {
             event_loop.set_control_flow(ControlFlow::Wait);
