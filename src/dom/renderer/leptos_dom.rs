@@ -1,5 +1,5 @@
 use crate::{documents::LeptosDocument, dom::qual_name};
-use blitz_dom::{node::Attribute, Atom, ElementNodeData, NodeData, QualName};
+use blitz_dom::{node::Attribute, NodeData};
 use leptos::tachys::{
     renderer::{CastFrom, Renderer},
     view::Mountable,
@@ -12,7 +12,7 @@ impl Renderer for LeptosDom {
     type Node = Node;
     type Element = Element;
     type Text = Text;
-    type Placeholder = Element;
+    type Placeholder = Comment;
 
     fn intern(text: &str) -> &str {
         text
@@ -25,21 +25,9 @@ impl Renderer for LeptosDom {
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        let display = Attribute {
-            name: QualName {
-                prefix: None,
-                ns: Atom::from("display"),
-                local: Atom::from("display"),
-            },
-            value: "none".to_string(),
-        };
+        let id = LeptosDocument::document_mut().create_node(NodeData::Comment);
 
-        let data = ElementNodeData::new(qual_name("div", None), vec![display]);
-
-        // NodeData::Comment
-        let id = LeptosDocument::document_mut().create_node(NodeData::Element(data));
-
-        Element(Node(id))
+        Comment(Node(id))
     }
 
     fn set_text(node: &Self::Text, text: &str) {
@@ -170,6 +158,17 @@ impl Renderer for LeptosDom {
     }
 }
 
+type NodeId = usize;
+
+#[derive(Debug, Clone)]
+pub struct Node(pub NodeId);
+
+impl Node {
+    pub fn node_id(&self) -> NodeId {
+        self.0
+    }
+}
+
 impl Mountable<LeptosDom> for Node {
     fn unmount(&mut self) {
         LeptosDom::remove(self);
@@ -190,17 +189,6 @@ impl Mountable<LeptosDom> for Node {
             return true;
         }
         false
-    }
-}
-
-type NodeId = usize;
-
-#[derive(Debug, Clone)]
-pub struct Node(pub NodeId);
-
-impl Node {
-    pub fn node_id(&self) -> NodeId {
-        self.0
     }
 }
 
@@ -251,6 +239,54 @@ impl CastFrom<Node> for Element {
 }
 
 impl AsRef<Node> for Element {
+    fn as_ref(&self) -> &Node {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Comment(pub Node);
+
+impl Comment {
+    pub fn node_id(&self) -> NodeId {
+        self.0.node_id()
+    }
+}
+
+impl Mountable<LeptosDom> for Comment {
+    fn unmount(&mut self) {
+        LeptosDom::remove(self.as_ref());
+    }
+
+    fn mount(&mut self, parent: &Element, marker: Option<&Node>) {
+        LeptosDom::insert_node(parent, self.as_ref(), marker);
+    }
+
+    fn insert_before_this(&self, child: &mut dyn Mountable<LeptosDom>) -> bool {
+        let parent = LeptosDom::get_parent(self.as_ref()).and_then(Element::cast_from);
+        if let Some(parent) = parent {
+            child.mount(&parent, Some(self.as_ref()));
+            return true;
+        }
+        false
+    }
+}
+
+impl CastFrom<Node> for Comment {
+    fn cast_from(source: Node) -> Option<Self> {
+        let doc = LeptosDocument::document_mut();
+        let Some(node) = doc.get_node(source.node_id()) else {
+            return None;
+        };
+        if matches!(node.raw_dom_data, NodeData::Comment) {
+            Some(Self(source))
+        } else {
+            None
+        }
+    }
+}
+
+impl AsRef<Node> for Comment {
     fn as_ref(&self) -> &Node {
         &self.0
     }
