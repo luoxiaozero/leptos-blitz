@@ -1,6 +1,6 @@
-use super::{attribute::Attr, element::HtmlElement};
+use super::element::HtmlElement;
 use leptos::tachys::{
-    html::attribute::{Attribute, AttributeKey, AttributeValue},
+    html::attribute::{Attr, Attribute, AttributeKey, AttributeValue},
     renderer::Renderer,
 };
 use next_tuple::NextTuple;

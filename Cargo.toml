@@ -6,13 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-leptos = { git = "https://github.com/leptos-rs/leptos", rev = "4d1c99c", features = [
+leptos = { git = "https://github.com/leptos-rs/leptos", rev = "bbc04a4", features = [
     "csr",
 ] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "4d1c99c", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "bbc04a4", features = [
     "tokio",
 ] }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "4d1c99c" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "bbc04a4" }
 send_wrapper = "0.6.0"
 paste = "1"
 slotmap = "1.0.7"
