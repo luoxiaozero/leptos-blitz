@@ -4,6 +4,9 @@ mod launch;
 mod waker;
 mod window;
 
+#[cfg(feature = "accessibility")]
+mod accessibility;
+
 pub mod prelude {
     pub use crate::dom::IntoView;
     pub use crate::launch::launch;

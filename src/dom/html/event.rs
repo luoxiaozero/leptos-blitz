@@ -1,6 +1,6 @@
 use leptos::tachys::{
     html::attribute::{Attribute, NextAttribute},
-    renderer::{RemoveEventHandler, Renderer},
+    renderer::Renderer,
 };
 use send_wrapper::SendWrapper;
 use slotmap::{DefaultKey, Key, KeyData, SlotMap};
@@ -77,6 +77,19 @@ where
     }
 }
 
+pub struct RemoveEventHandler<T>(Box<dyn FnOnce(&T) + Send + Sync>);
+
+impl<T> RemoveEventHandler<T> {
+    /// Creates a new container with a function that will be called when it is dropped.
+    pub fn new(remove: impl FnOnce(&T) + Send + Sync + 'static) -> Self {
+        Self(Box::new(remove))
+    }
+
+    pub fn into_inner(self) -> Box<dyn FnOnce(&T) + Send + Sync> {
+        self.0
+    }
+}
+
 impl<E, F, R> On<E, F, R>
 where
     F: EventCallback<E::EventType>,
@@ -95,10 +108,8 @@ where
             let key = Event::insert(cb);
             R::set_attribute(el, &html_name, &key.to_string());
 
-            Box::new({
-                move |_el| {
-                    Event::remove(key);
-                }
+            RemoveEventHandler::new(move |_| {
+                Event::remove(key);
             })
         }
 
@@ -137,8 +148,9 @@ where
     E::EventType: From<Event>,
 {
     const MIN_LENGTH: usize = 0;
+    type AsyncOutput = Self;
     // a function that can be called once to remove the event listener
-    type State = (R::Element, Option<Box<dyn FnOnce(&R::Element)>>);
+    type State = (R::Element, Option<RemoveEventHandler<R::Element>>);
     type Cloneable = On<E, SharedEventCallback<E::EventType>, R>;
     type CloneableOwned = On<E, SharedEventCallback<E::EventType>, R>;
 
@@ -173,7 +185,7 @@ where
     fn rebuild(self, state: &mut Self::State) {
         let (el, prev_cleanup) = state;
         if let Some(prev) = prev_cleanup.take() {
-            prev(el);
+            (prev.into_inner())(el);
         }
         *prev_cleanup = Some(self.attach(el));
     }
@@ -192,6 +204,12 @@ where
             event: self.event,
             ty: self.ty,
         }
+    }
+
+    fn dry_resolve(&mut self) {}
+
+    async fn resolve(self) -> Self::AsyncOutput {
+        self
     }
 }
 

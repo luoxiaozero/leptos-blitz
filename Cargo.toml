@@ -3,27 +3,35 @@ name = "leptos-blitz"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+accessibility = ["dep:accesskit", "dep:accesskit_winit"]
+menu = ["dep:muda"]
+default = ["accessibility", "menu"]
 
 [dependencies]
-leptos = { git = "https://github.com/leptos-rs/leptos", rev = "bbc04a4", features = [
+leptos = { git = "https://github.com/leptos-rs/leptos", rev = "9e05c6d", features = [
     "csr",
 ] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "bbc04a4", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "9e05c6d", features = [
     "tokio",
 ] }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "bbc04a4" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "9e05c6d" }
 send_wrapper = "0.6.0"
 paste = "1"
 slotmap = "1.0.7"
 
 # blitz
-blitz = { git = "https://github.com/DioxusLabs/blitz", rev = "986e25b" }
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "986e25b" }
-style = { git = "https://github.com/DioxusLabs/stylo", rev = "10767f4" }
+accesskit = { version = "0.15.0", optional = true }
+accesskit_winit = { version = "0.21.1", optional = true }
+winit = { version = "0.30.2", features = ["rwh_06"] }
+muda = { version = "0.11.5", features = ["serde"], optional = true }
 tokio = { version = "1.25.0", features = ["full"] }
 futures-util = "0.3.30"
 vello = { version = "0.1", features = ["wgpu"] }
-muda = { version = "0.11.5", features = ["serde"] }
-winit = { version = "0.30.2", features = ["rwh_06"] }
 wgpu = "0.19"
+style = { git = "https://github.com/DioxusLabs/stylo", rev = "10767f4" }
+blitz = { git = "https://github.com/DioxusLabs/blitz", rev = "57f9f5b" }
+blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "57f9f5b" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android-activity = { version = "0.6.0", features = ["native-activity"] }
