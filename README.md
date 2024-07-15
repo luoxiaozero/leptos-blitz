@@ -11,3 +11,5 @@
 ### Reference
 
 [dioxus-blitz](https://github.com/DioxusLabs/blitz/tree/main/packages/dioxus-blitz)
+
+[Leptos](https://github.com/leptos-rs/leptos/tree/leptos_0.7)

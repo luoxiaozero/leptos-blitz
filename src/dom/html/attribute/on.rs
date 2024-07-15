@@ -3,7 +3,7 @@ use crate::dom::html::event::{on, Event, EventDescriptor, On};
 use leptos::tachys::{html::attribute::Attribute, renderer::Renderer};
 use next_tuple::NextTuple;
 
-impl<E, At, Rndr> HtmlElement<E, At, (), Rndr>
+impl<E, At, Ch, Rndr> HtmlElement<E, At, Ch, Rndr>
 where
     At: Attribute<Rndr>,
     Rndr: Renderer,
@@ -12,7 +12,7 @@ where
         self,
         event: EV,
         cb: F,
-    ) -> HtmlElement<E, <At as NextTuple>::Output<On<EV, F, Rndr>>, (), Rndr>
+    ) -> HtmlElement<E, <At as NextTuple>::Output<On<EV, F, Rndr>>, Ch, Rndr>
     where
         EV: EventDescriptor + Send + 'static,
         EV::EventType: 'static,

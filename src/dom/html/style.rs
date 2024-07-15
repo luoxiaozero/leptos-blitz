@@ -6,7 +6,7 @@ use leptos::tachys::{
 use next_tuple::NextTuple;
 use std::marker::PhantomData;
 
-impl<E, At, Rndr> HtmlElement<E, At, (), Rndr>
+impl<E, At, Ch, Rndr> HtmlElement<E, At, Ch, Rndr>
 where
     At: Attribute<Rndr>,
     Rndr: Renderer,
@@ -14,7 +14,7 @@ where
     pub fn style<V>(
         self,
         value: V,
-    ) -> HtmlElement<E, <At as NextTuple>::Output<Attr<Style, V, Rndr>>, (), Rndr>
+    ) -> HtmlElement<E, <At as NextTuple>::Output<Attr<Style, V, Rndr>>, Ch, Rndr>
     where
         V: AttributeValue<Rndr>,
         At: NextTuple,

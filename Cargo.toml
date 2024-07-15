@@ -19,6 +19,7 @@ next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "9e05c6d" }
 send_wrapper = "0.6.0"
 paste = "1"
 slotmap = "1.0.7"
+leptos_blitz_macro = { workspace = true }
 
 # blitz
 accesskit = { version = "0.15.0", optional = true }
@@ -35,3 +36,12 @@ blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "57f9f5b" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity = { version = "0.6.0", features = ["native-activity"] }
+
+[workspace]
+members = ["./macro"]
+resolver = "2"
+
+[workspace.dependencies]
+leptos_blitz_macro = { path = "./macro" }
+
+leptos_hot_reload = { git = "https://github.com/leptos-rs/leptos", rev = "9e05c6d" }
