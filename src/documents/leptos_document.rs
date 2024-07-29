@@ -4,8 +4,7 @@ use crate::dom::{
     IntoView,
 };
 use any_spawner::Executor;
-use blitz::Viewport;
-use blitz_dom::{Document, DocumentLike};
+use blitz_dom::{Document, DocumentLike, Viewport};
 use futures_util::FutureExt;
 use leptos::{
     reactive_graph::owner::Owner,
@@ -102,8 +101,8 @@ impl LeptosDocument {
         N: IntoView + 'static,
     {
         DOCUMENT.with(|doc| {
-            let device = Viewport::new((0, 0)).make_device();
-            let mut document = Document::new(device);
+            let viewport = Viewport::new(0, 0, 1.0);
+            let mut document = Document::new(viewport);
             document.add_stylesheet(include_str!("./default.css"));
 
             *doc.borrow_mut() = Some(document);

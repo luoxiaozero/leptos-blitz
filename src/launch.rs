@@ -1,11 +1,9 @@
 use crate::{
     documents::LeptosDocument,
     dom::IntoView,
-    waker::{EventData, UserEvent},
-    window,
-    window::View,
+    waker::{BlitzEvent, BlitzWindowEvent},
+    window::{self, View, WindowConfig},
 };
-use blitz::RenderState;
 use blitz_dom::DocumentLike;
 use std::collections::HashMap;
 use winit::event_loop::EventLoop;
@@ -27,16 +25,16 @@ where
     let _guard = rt.enter();
 
     let document = LeptosDocument::new(&rt, f);
-    let window = View::new(document);
+    let window = WindowConfig::new(document, 800.0, 600.0);
     launch_with_window(rt, window);
 }
 
 fn launch_with_window<Doc: DocumentLike + 'static>(
     rt: tokio::runtime::Runtime,
-    window: View<'static, Doc>,
+    window: WindowConfig<Doc>,
 ) {
     // Build an event loop for the application
-    let mut builder = EventLoop::<UserEvent>::with_user_event();
+    let mut builder = EventLoop::<BlitzEvent>::with_user_event();
 
     #[cfg(target_os = "android")]
     {
@@ -71,7 +69,7 @@ fn launch_with_window<Doc: DocumentLike + 'static>(
             dioxus_hot_reload::connect_at(cfg.target_dir.join("dioxusin"), {
                 let proxy = proxy.clone();
                 move |template| {
-                    let _ = proxy.send_event(UserEvent::HotReloadEvent(template));
+                    let _ = proxy.send_event(BlitzEvent::HotReloadEvent(template));
                 }
             })
         }
@@ -84,124 +82,95 @@ fn launch_with_window<Doc: DocumentLike + 'static>(
         .run(move |event, event_loop| {
             event_loop.set_control_flow(ControlFlow::Wait);
 
-            let mut on_resume = || {
+            let on_resume =
+                |windows: &mut HashMap<WindowId, window::View<'_, Doc>>,
+                 pending_windows: &mut Vec<WindowConfig<Doc>>| {
+                    // Resume existing windows
+                    for (_, view) in windows.iter_mut() {
+                        view.resume(&rt);
+                    }
+
+                    // Initialise pending windows
+                    for window_config in pending_windows.drain(..) {
+                        let mut view = View::init(window_config, event_loop, &proxy);
+                        view.resume(&rt);
+                        if !view.renderer.is_active() {
+                            continue;
+                        }
+                        windows.insert(view.window_id(), view);
+                    }
+                };
+
+            let on_suspend = |windows: &mut HashMap<WindowId, window::View<'_, Doc>>| {
                 for (_, view) in windows.iter_mut() {
-                    view.resume(event_loop, &proxy, &rt);
-                }
-
-                for view in pending_windows.iter_mut() {
-                    view.resume(event_loop, &proxy, &rt);
-                }
-
-                for window in pending_windows.drain(..) {
-                    let RenderState::Active(state) = &window.renderer.render_state else {
-                        continue;
-                    };
-                    windows.insert(state.window.id(), window);
+                    view.suspend();
                 }
             };
 
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             if initial {
-                on_resume();
+                on_resume(&mut windows, &mut pending_windows);
                 initial = false;
             }
 
+            #[cfg(feature = "tracing")]
+            tracing::trace!("Received event: {:?}", event);
+
             match event {
-                // Exit the app when close is request
-                // Not always necessary
+                Event::Resumed => on_resume(&mut windows, &mut pending_windows),
+                Event::Suspended => on_suspend(&mut windows),
+
+                // Exit the app when window close is requested. TODO: Only exit when last window is closed.
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
                     ..
                 } => event_loop.exit(),
 
-                Event::WindowEvent {
-                    window_id,
-                    event: winit::event::WindowEvent::RedrawRequested,
-                } => {
+                Event::WindowEvent { window_id, event } => {
                     if let Some(window) = windows.get_mut(&window_id) {
-                        window.renderer.dom.as_mut().resolve();
-                        window.renderer.render(&mut window.scene);
-                    };
+                        window.handle_winit_event(event);
+                    }
+                }
+
+                Event::NewEvents(_) => {
+                    for window_id in windows.keys().copied() {
+                        _ = proxy.send_event(BlitzEvent::Window {
+                            data: BlitzWindowEvent::Poll,
+                            window_id,
+                        });
+                    }
                 }
 
                 Event::UserEvent(user_event) => match user_event {
-                    UserEvent::Window {
-                        data: EventData::Poll,
-                        window_id: id,
-                    } => {
-                        if let Some(view) = windows.get_mut(&id) {
-                            if view.poll() {
-                                view.request_redraw();
-                            }
+                    BlitzEvent::Window { data, window_id } => {
+                        if let Some(view) = windows.get_mut(&window_id) {
+                            view.handle_blitz_event(data);
                         };
                     }
-                    #[cfg(feature = "accessibility")]
-                    UserEvent::Accessibility(accessibility_event) => {
-                        if let Some(window) = windows.get_mut(&accessibility_event.window_id) {
-                            window.handle_accessibility_event(&accessibility_event.window_event);
-                        }
-                    }
+
                     #[cfg(all(
                         feature = "hot-reload",
                         debug_assertions,
                         not(target_os = "android"),
                         not(target_os = "ios")
                     ))]
-                    UserEvent::HotReloadEvent(msg) => match msg {
+                    BlitzEvent::HotReloadEvent(msg) => match msg {
                         dioxus_hot_reload::HotReloadMsg::UpdateTemplate(template) => {
                             for window in windows.values_mut() {
-                                if let Some(dx_doc) = window
-                                    .renderer
-                                    .dom
-                                    .as_any_mut()
-                                    .downcast_mut::<DioxusDocument>()
+                                if let Some(dx_doc) =
+                                    window.dom.as_any_mut().downcast_mut::<DioxusDocument>()
                                 {
                                     dx_doc.vdom.replace_template(template);
-
-                                    if window.poll() {
-                                        window.request_redraw();
-                                    }
+                                    window.handle_blitz_event(BlitzWindowEvent::Poll);
                                 }
                             }
                         }
                         dioxus_hot_reload::HotReloadMsg::Shutdown => event_loop.exit(),
-                        dioxus_hot_reload::HotReloadMsg::UpdateAsset(asset) => {
+                        dioxus_hot_reload::HotReloadMsg::UpdateAsset(_asset) => {
                             // TODO dioxus-desktop seems to handle this by forcing a reload of all stylesheets.
-                            dbg!("Update asset {:?}", asset);
                         }
                     },
                 },
-
-                // Event::UserEvent(_redraw) => {
-                //     for (_, view) in windows.iter() {
-                //         view.request_redraw();
-                //     }
-                // }
-                Event::NewEvents(_) => {
-                    for window_id in windows.keys().copied() {
-                        _ = proxy.send_event(UserEvent::Window {
-                            data: EventData::Poll,
-                            window_id,
-                        });
-                    }
-                }
-
-                Event::Suspended => {
-                    for (_, view) in windows.iter_mut() {
-                        view.suspend();
-                    }
-                }
-
-                Event::Resumed => on_resume(),
-
-                Event::WindowEvent {
-                    window_id, event, ..
-                } => {
-                    if let Some(window) = windows.get_mut(&window_id) {
-                        window.handle_window_event(event);
-                    }
-                }
 
                 _ => (),
             }
@@ -210,7 +179,7 @@ fn launch_with_window<Doc: DocumentLike + 'static>(
             if let Ok(event) = menu_channel.try_recv() {
                 if event.id == muda::MenuId::new("dev.show_layout") {
                     for (_, view) in windows.iter_mut() {
-                        view.renderer.devtools.show_layout = !view.renderer.devtools.show_layout;
+                        view.devtools.show_layout = !view.devtools.show_layout;
                         view.request_redraw();
                     }
                 }

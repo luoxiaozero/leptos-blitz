@@ -1,6 +1,9 @@
-use crate::waker::UserEvent;
-use blitz::{RenderState, Renderer, Viewport};
-use blitz_dom::DocumentLike;
+use crate::accessibility::AccessibilityState;
+use crate::stylo_to_winit;
+use crate::waker::{create_waker, BlitzEvent, BlitzWindowEvent};
+use blitz::{Devtools, Renderer};
+use blitz_dom::events::{EventData, RendererEvent};
+use blitz_dom::{DocumentLike, Viewport};
 use winit::keyboard::PhysicalKey;
 
 #[allow(unused)]
@@ -8,92 +11,376 @@ use wgpu::rwh::HasWindowHandle;
 
 use std::sync::Arc;
 use std::task::Waker;
-use vello::Scene;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, MouseButton};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
-use winit::{event::WindowEvent, keyboard::KeyCode, keyboard::ModifiersState, window::Window};
+use winit::window::{WindowAttributes, WindowId};
+use winit::{event::Modifiers, event::WindowEvent, keyboard::KeyCode, window::Window};
 
-struct State {
+#[cfg(all(feature = "menu", not(any(target_os = "android", target_os = "ios"))))]
+use crate::menu::init_menu;
+
+pub struct WindowConfig<Doc: DocumentLike> {
+    doc: Doc,
+    attributes: WindowAttributes,
+}
+
+impl<Doc: DocumentLike> WindowConfig<Doc> {
+    pub fn new(doc: Doc, width: f32, height: f32) -> Self {
+        WindowConfig {
+            doc,
+            attributes: Window::default_attributes().with_inner_size(LogicalSize { width, height }),
+        }
+    }
+
+    pub fn with_attributes(doc: Doc, attributes: WindowAttributes) -> Self {
+        WindowConfig { doc, attributes }
+    }
+}
+
+pub(crate) struct View<'s, Doc: DocumentLike> {
+    pub(crate) renderer: Renderer<'s, Window>,
+    pub(crate) dom: Doc,
+    pub(crate) waker: Option<Waker>,
+
+    event_loop_proxy: EventLoopProxy<BlitzEvent>,
+    window: Arc<Window>,
+
+    /// The actual viewport of the page that we're getting a glimpse of.
+    /// We need this since the part of the page that's being viewed might not be the page in its entirety.
+    /// This will let us opt of rendering some stuff
+    viewport: Viewport,
+
+    /// The state of the keyboard modifiers (ctrl, shift, etc). Winit/Tao don't track these for us so we
+    /// need to store them in order to have access to them when processing keypress events
+    keyboard_modifiers: Modifiers,
+    pub devtools: Devtools,
+    mouse_pos: (f32, f32),
+    dom_mouse_pos: (f32, f32),
+
     #[cfg(feature = "accessibility")]
     /// Accessibility adapter for `accesskit`.
-    accessibility: crate::accessibility::AccessibilityState,
+    accessibility: AccessibilityState,
 
     /// Main menu bar of this view's window.
+    /// Field is _ prefixed because it is never read. But it needs to be stored here to prevent it from dropping.
     #[cfg(feature = "menu")]
     _menu: muda::Menu,
 }
 
-pub(crate) struct View<'s, Doc: DocumentLike> {
-    pub(crate) renderer: Renderer<'s, Window, Doc>,
-    pub(crate) scene: Scene,
-    pub(crate) waker: Option<Waker>,
-    /// The state of the keyboard modifiers (ctrl, shift, etc). Winit/Tao don't track these for us so we
-    /// need to store them in order to have access to them when processing keypress events
-    keyboard_modifiers: ModifiersState,
-
-    #[cfg(any(feature = "accessibility", feature = "menu"))]
-    state: Option<State>,
-}
-
 impl<'a, Doc: DocumentLike> View<'a, Doc> {
-    pub(crate) fn new(doc: Doc) -> Self {
+    pub(crate) fn init(
+        config: WindowConfig<Doc>,
+        event_loop: &ActiveEventLoop,
+        proxy: &EventLoopProxy<BlitzEvent>,
+    ) -> Self {
+        let winit_window = Arc::from(event_loop.create_window(config.attributes).unwrap());
+
+        // TODO: make this conditional on text input focus
+        winit_window.set_ime_allowed(true);
+
+        // Create viewport
+        let size = winit_window.inner_size();
+        let scale = winit_window.scale_factor() as f32;
+        let viewport = Viewport::new(size.width, size.height, scale);
+
         Self {
-            renderer: Renderer::new(doc),
-            scene: Scene::new(),
+            renderer: Renderer::new(winit_window.clone()),
             waker: None,
             keyboard_modifiers: Default::default(),
-            #[cfg(any(feature = "accessibility", feature = "menu"))]
-            state: None,
+
+            event_loop_proxy: proxy.clone(),
+            window: winit_window.clone(),
+            dom: config.doc,
+            viewport,
+            devtools: Default::default(),
+            mouse_pos: Default::default(),
+            dom_mouse_pos: Default::default(),
+
+            #[cfg(feature = "accessibility")]
+            accessibility: AccessibilityState::new(&winit_window, proxy.clone()),
+
+            #[cfg(feature = "menu")]
+            _menu: init_menu(&winit_window),
         }
     }
 }
 
 impl<'a, Doc: DocumentLike> View<'a, Doc> {
-    pub(crate) fn poll(&mut self) -> bool {
-        match &self.waker {
-            None => false,
-            Some(waker) => {
-                let cx = std::task::Context::from_waker(waker);
-                if self.renderer.poll(cx) {
-                    #[cfg(feature = "accessibility")]
-                    {
-                        if let Some(ref mut state) = self.state {
-                            // TODO send fine grained accessibility tree updates.
-                            let changed = std::mem::take(&mut self.renderer.dom.as_mut().changed);
-                            if !changed.is_empty() {
-                                state.accessibility.build_tree(self.renderer.dom.as_ref());
-                            }
-                        }
-                    }
+    pub fn resume(&mut self, rt: &tokio::runtime::Runtime) {
+        // Resolve dom
+        self.dom.as_mut().set_viewport(self.viewport.clone());
+        self.dom.as_mut().resolve();
 
-                    true
-                } else {
-                    false
+        // Resume renderer
+        rt.block_on(self.renderer.resume(&self.viewport));
+        if !self.renderer.is_active() {
+            panic!("Renderer failed to resume");
+        };
+
+        // Render
+        self.renderer
+            .render(self.dom.as_ref(), self.viewport.scale_f64(), self.devtools);
+
+        // Set waker
+        self.waker = Some(create_waker(&self.event_loop_proxy, self.window_id()));
+    }
+
+    pub fn suspend(&mut self) {
+        self.waker = None;
+        self.renderer.suspend();
+    }
+
+    pub(crate) fn poll(&mut self) -> bool {
+        if let Some(waker) = &self.waker {
+            let cx = std::task::Context::from_waker(waker);
+            if self.dom.poll(cx) {
+                #[cfg(feature = "accessibility")]
+                {
+                    // TODO send fine grained accessibility tree updates.
+                    let changed = std::mem::take(&mut self.dom.as_mut().changed);
+                    if !changed.is_empty() {
+                        self.accessibility.build_tree(self.dom.as_ref());
+                    }
+                }
+
+                self.request_redraw();
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn request_redraw(&self) {
+        if self.renderer.is_active() {
+            self.window.request_redraw();
+        }
+    }
+
+    pub fn redraw(&mut self) {
+        self.dom.as_mut().resolve();
+        self.renderer
+            .render(self.dom.as_ref(), self.viewport.scale_f64(), self.devtools);
+    }
+
+    pub fn window_id(&self) -> WindowId {
+        self.window.id()
+    }
+
+    pub fn kick_viewport(&mut self) {
+        self.kick_dom_viewport();
+        self.kick_renderer_viewport();
+    }
+
+    pub fn kick_dom_viewport(&mut self) {
+        let (width, height) = self.viewport.window_size;
+        if width > 0 && height > 0 {
+            self.dom.as_mut().set_viewport(self.viewport.clone());
+            self.request_redraw();
+        }
+    }
+
+    pub fn kick_renderer_viewport(&mut self) {
+        let (width, height) = self.viewport.window_size;
+        if width > 0 && height > 0 {
+            self.renderer.set_size(width, height);
+            self.request_redraw();
+        }
+    }
+
+    pub fn mouse_move(&mut self, x: f32, y: f32) -> bool {
+        let dom_x = x / self.viewport.zoom();
+        let dom_y = (y - self.dom.as_ref().scroll_offset as f32) / self.viewport.zoom();
+
+        // println!("Mouse move: ({}, {})", x, y);
+        // println!("Unscaled: ({}, {})",);
+
+        self.mouse_pos = (x, y);
+        self.dom_mouse_pos = (dom_x, dom_y);
+        self.dom.as_mut().set_hover_to(dom_x, dom_y)
+    }
+
+    pub fn click(&mut self, button: &str) {
+        let Some(node_id) = self.dom.as_ref().get_hover_node_id() else {
+            return;
+        };
+
+        if self.devtools.highlight_hover {
+            let mut node = self.dom.as_ref().get_node(node_id).unwrap();
+            if button == "right" {
+                if let Some(parent_id) = node.parent {
+                    node = self.dom.as_ref().get_node(parent_id).unwrap();
+                }
+            }
+            self.dom.as_ref().debug_log_node(node.id);
+            self.devtools.highlight_hover = false;
+        } else {
+            // Not debug mode. Handle click as usual
+            if button == "left" {
+                // If we hit a node, then we collect the node to its parents, check for listeners, and then
+                // call those listeners
+                self.dom.handle_event(RendererEvent {
+                    target: node_id,
+                    data: EventData::Click {
+                        x: self.dom_mouse_pos.0,
+                        y: self.dom_mouse_pos.1,
+                        mods: self.keyboard_modifiers,
+                    },
+                });
+            }
+        }
+    }
+
+    pub fn handle_blitz_event(&mut self, event: BlitzWindowEvent) {
+        match event {
+            BlitzWindowEvent::Poll => {
+                self.poll();
+            }
+            #[cfg(feature = "accessibility")]
+            BlitzWindowEvent::Accessibility(accessibility_event) => {
+                match &*accessibility_event {
+                    accesskit_winit::WindowEvent::InitialTreeRequested => {
+                        self.accessibility.build_tree(self.dom.as_ref());
+                    }
+                    accesskit_winit::WindowEvent::AccessibilityDeactivated => {
+                        // TODO
+                    }
+                    accesskit_winit::WindowEvent::ActionRequested(_req) => {
+                        // TODO
+                    }
                 }
             }
         }
     }
 
-    pub fn request_redraw(&self) {
-        let RenderState::Active(state) = &self.renderer.render_state else {
-            return;
-        };
-
-        state.window.request_redraw();
-    }
-
-    pub fn handle_window_event(&mut self, event: WindowEvent) {
+    pub fn handle_winit_event(&mut self, event: WindowEvent) {
         match event {
-            WindowEvent::MouseInput {
-                // device_id,
-                state,
-                button,
-                // modifiers,
+            // Window lifecycle events
+            WindowEvent::Destroyed => {}
+            WindowEvent::ActivationTokenDone { .. } => {},
+            WindowEvent::CloseRequested => {
+                // Currently handled at the level above in lib.rs
+            }
+            WindowEvent::RedrawRequested => {
+                self.redraw();
+            }
+
+            // Window size/position events
+            WindowEvent::Moved(_) => {}
+            WindowEvent::Occluded(_) => {},
+            WindowEvent::Resized(physical_size) => {
+                self.viewport.window_size = (physical_size.width, physical_size.height);
+                self.kick_viewport();
+            }
+            WindowEvent::ScaleFactorChanged {
+                // scale_factor,
+                // new_inner_size,
                 ..
-            } => {
+            } => {}
+
+            // Theme events
+            WindowEvent::ThemeChanged(_) => {
+                // TODO: dark mode / light mode support
+            }
+
+            // Text / keyboard events
+            WindowEvent::Ime(ime_event) => {
+                if let Some(target) = self.dom.as_ref().get_focussed_node_id() {
+                    self.dom.handle_event(RendererEvent { target, data: EventData::Ime(ime_event) });
+                    self.request_redraw();
+                }
+            },
+            WindowEvent::ModifiersChanged(new_state) => {
+                // Store new keyboard modifier (ctrl, shift, etc) state for later use
+                self.keyboard_modifiers = new_state;
+            }
+            WindowEvent::KeyboardInput { event, .. } => {
+                let PhysicalKey::Code(key_code) = event.physical_key else {
+                    return;
+                };
+                if !event.state.is_pressed() {
+                    return;
+                }
+
+                let ctrl = self.keyboard_modifiers.state().control_key();
+                let meta = self.keyboard_modifiers.state().super_key();
+                let alt = self.keyboard_modifiers.state().alt_key();
+
+                // Ctrl/Super keyboard shortcuts
+                if ctrl | meta {
+                    match key_code {
+                        KeyCode::Equal => {
+                            *self.viewport.zoom_mut() += 0.1;
+                            self.kick_dom_viewport();
+                        }
+                        KeyCode::Minus => {
+                            *self.viewport.zoom_mut() -= 0.1;
+                            self.kick_dom_viewport();
+                        }
+                        KeyCode::Digit0 => {
+                            *self.viewport.zoom_mut() = 1.0;
+                            self.kick_dom_viewport();
+                        }
+                        _ => {}
+                    };
+                }
+
+                // Alt keyboard shortcuts
+                if alt {
+                    match key_code {
+                        KeyCode::KeyD => {
+                            self.devtools.show_layout = !self.devtools.show_layout;
+                            self.request_redraw();
+                        }
+                        KeyCode::KeyH => {
+                            self.devtools.highlight_hover = !self.devtools.highlight_hover;
+                            self.request_redraw();
+                        }
+                        KeyCode::KeyT => {
+                            self.dom.as_ref().print_taffy_tree();
+                        }
+                        _ => {}
+                    };
+                }
+
+                // Unmodified keypresses
+                match key_code {
+                    KeyCode::Tab if event.state.is_pressed() => {
+                        self.dom.as_mut().focus_next_node();
+                        self.request_redraw();
+                    }
+                    _ => {
+                        if let Some(focus_node_id) = self.dom.as_ref().get_focussed_node_id() {
+                            self.dom.handle_event(RendererEvent {
+                                target: focus_node_id,
+                                data: EventData::KeyPress { event, mods: self.keyboard_modifiers }
+                            });
+                            self.request_redraw();
+                        }
+                    }
+                }
+            }
+
+
+            // Mouse/pointer events
+            WindowEvent::CursorEntered { /*device_id*/.. } => {}
+            WindowEvent::CursorLeft { /*device_id*/.. } => {}
+            WindowEvent::CursorMoved { position, .. } => {
+                let winit::dpi::LogicalPosition::<f32> { x, y } = position.to_logical(self.window.scale_factor());
+                let changed = self.mouse_move(x, y);
+
+                if changed {
+                    let cursor = self.dom.as_ref().get_cursor();
+                    if let Some(cursor) = cursor {
+                            self.window.set_cursor(stylo_to_winit::cursor(cursor));
+                            self.request_redraw();
+                    }
+                }
+            }
+            WindowEvent::MouseInput { button, state, .. } => {
                 if state == ElementState::Pressed && matches!(button, MouseButton::Left | MouseButton::Right) {
-                    self.renderer.click(match button {
+                    self.click(match button {
                         MouseButton::Left => "left",
                         MouseButton::Right => "right",
                         _ => unreachable!(),
@@ -103,309 +390,32 @@ impl<'a, Doc: DocumentLike> View<'a, Doc> {
                     self.request_redraw();
                 }
             }
-
-            WindowEvent::Resized(physical_size) => {
-                self.renderer
-                    .set_size((physical_size.width, physical_size.height));
+            WindowEvent::MouseWheel { delta, .. } => {
+                match delta {
+                    winit::event::MouseScrollDelta::LineDelta(_, y) => {
+                        self.dom.as_mut().scroll_by(y as f64 * 20.0)
+                    }
+                    winit::event::MouseScrollDelta::PixelDelta(offsets) => {
+                        self.dom.as_mut().scroll_by(offsets.y)
+                    }
+                };
                 self.request_redraw();
             }
 
-            // Store new keyboard modifier (ctrl, shift, etc) state for later use
-            WindowEvent::ModifiersChanged(new_state) => {
-                self.keyboard_modifiers = new_state.state();
-            }
-
-            // todo: if there's an active text input, we want to direct input towards it and translate system emi text
-            WindowEvent::KeyboardInput { event, .. } => {
-                dbg!(&event);
-
-                match event.physical_key {
-                    PhysicalKey::Code(key_code) => {
-                        match key_code {
-                            KeyCode::Equal => {
-                                if self.keyboard_modifiers.control_key()
-                                    || self.keyboard_modifiers.super_key()
-                                {
-                                    self.renderer.zoom(0.1);
-                                    self.request_redraw();
-                                }
-                            }
-                            KeyCode::Minus => {
-                                if self.keyboard_modifiers.control_key()
-                                    || self.keyboard_modifiers.super_key()
-                                {
-                                    self.renderer.zoom(-0.1);
-                                    self.request_redraw();
-                                }
-                            }
-                            KeyCode::Digit0 => {
-                                if self.keyboard_modifiers.control_key()
-                                    || self.keyboard_modifiers.super_key()
-                                {
-                                    self.renderer.reset_zoom();
-                                    self.request_redraw();
-                                }
-                            }
-                            KeyCode::KeyD => {
-                                if event.state == ElementState::Pressed && self.keyboard_modifiers.alt_key()
-                                {
-                                    self.renderer.devtools.show_layout =
-                                        !self.renderer.devtools.show_layout;
-                                    self.request_redraw();
-                                }
-                            }
-                            KeyCode::KeyH => {
-                                if event.state == ElementState::Pressed && self.keyboard_modifiers.alt_key()
-                                {
-                                    self.renderer.devtools.highlight_hover =
-                                        !self.renderer.devtools.highlight_hover;
-                                    self.request_redraw();
-                                }
-                            }
-                            KeyCode::KeyT => {
-                                if event.state == ElementState::Pressed && self.keyboard_modifiers.alt_key()
-                                {
-                                    self.renderer.print_taffy_tree();
-                                }
-                            }
-                            _ => {}
-                        }
-                    },
-                    PhysicalKey::Unidentified(_) => {}
-                }
-            }
-            WindowEvent::Moved(_) => {}
-            WindowEvent::CloseRequested => {}
-            WindowEvent::Destroyed => {}
+            // File events
             WindowEvent::DroppedFile(_) => {}
             WindowEvent::HoveredFile(_) => {}
             WindowEvent::HoveredFileCancelled => {}
             WindowEvent::Focused(_) => {}
-            WindowEvent::CursorMoved {
-                // device_id,
-                position,
-                // modifiers,
-                ..
-            } => {
-                let changed = if let RenderState::Active(state) = &self.renderer.render_state {
-                    let winit::dpi::LogicalPosition::<f32> { x, y } = position.to_logical(state.window.scale_factor());
 
-                    self.renderer.mouse_move(x, y)
-                } else {
-                    false
-                };
-
-                if changed {
-                    let cursor = self.renderer.get_cursor();
-
-                    if let Some(cursor) = cursor {
-                        use style::values::computed::ui::CursorKind;
-                        use winit::window::CursorIcon as TaoCursor;
-                        let tao_cursor = match cursor {
-                            CursorKind::None => todo!("set the cursor to none"),
-                            CursorKind::Default => TaoCursor::Default,
-                            CursorKind::Pointer => TaoCursor::Pointer,
-                            CursorKind::ContextMenu => TaoCursor::ContextMenu,
-                            CursorKind::Help => TaoCursor::Help,
-                            CursorKind::Progress => TaoCursor::Progress,
-                            CursorKind::Wait => TaoCursor::Wait,
-                            CursorKind::Cell => TaoCursor::Cell,
-                            CursorKind::Crosshair => TaoCursor::Crosshair,
-                            CursorKind::Text => TaoCursor::Text,
-                            CursorKind::VerticalText => TaoCursor::VerticalText,
-                            CursorKind::Alias => TaoCursor::Alias,
-                            CursorKind::Copy => TaoCursor::Copy,
-                            CursorKind::Move => TaoCursor::Move,
-                            CursorKind::NoDrop => TaoCursor::NoDrop,
-                            CursorKind::NotAllowed => TaoCursor::NotAllowed,
-                            CursorKind::Grab => TaoCursor::Grab,
-                            CursorKind::Grabbing => TaoCursor::Grabbing,
-                            CursorKind::EResize => TaoCursor::EResize,
-                            CursorKind::NResize => TaoCursor::NResize,
-                            CursorKind::NeResize => TaoCursor::NeResize,
-                            CursorKind::NwResize => TaoCursor::NwResize,
-                            CursorKind::SResize => TaoCursor::SResize,
-                            CursorKind::SeResize => TaoCursor::SeResize,
-                            CursorKind::SwResize => TaoCursor::SwResize,
-                            CursorKind::WResize => TaoCursor::WResize,
-                            CursorKind::EwResize => TaoCursor::EwResize,
-                            CursorKind::NsResize => TaoCursor::NsResize,
-                            CursorKind::NeswResize => TaoCursor::NeswResize,
-                            CursorKind::NwseResize => TaoCursor::NwseResize,
-                            CursorKind::ColResize => TaoCursor::ColResize,
-                            CursorKind::RowResize => TaoCursor::RowResize,
-                            CursorKind::AllScroll => TaoCursor::AllScroll,
-                            CursorKind::ZoomIn => TaoCursor::ZoomIn,
-                            CursorKind::ZoomOut => TaoCursor::ZoomOut,
-                            CursorKind::Auto => {
-                                // todo: we should be the ones determining this based on the UA?
-                                // https://developer.mozilla.org/en-US/docs/Web/CSS/cursor
-
-
-                                TaoCursor::Default
-                            },
-                        };
-
-                        if let RenderState::Active(state) = &self.renderer.render_state {
-                            state.window.set_cursor(tao_cursor);
-                            self.request_redraw();
-                        }
-                    }
-                }
-
-
-            }
-            WindowEvent::CursorEntered { /*device_id*/.. } => {}
-            WindowEvent::CursorLeft { /*device_id*/.. } => {}
-            WindowEvent::MouseWheel {
-                // device_id,
-                delta,
-                // phase,
-                // modifiers,
-                ..
-            } => {
-                match delta {
-                    winit::event::MouseScrollDelta::LineDelta(_, y) => {
-                        self.renderer.scroll_by(y as f64 * 20.0)
-                    }
-                    winit::event::MouseScrollDelta::PixelDelta(offsets) => {
-                        self.renderer.scroll_by(offsets.y)
-                    }
-                };
-                self.request_redraw();
-            }
-
-            WindowEvent::TouchpadPressure {
-                // device_id,
-                // pressure,
-                // stage,
-                ..
-            } => {}
-            WindowEvent::AxisMotion {
-                // device_id,
-                // axis,
-                // value,
-                ..
-            } => {}
+            // Touch and motion events
             WindowEvent::Touch(_) => {}
-            WindowEvent::ScaleFactorChanged {
-                // scale_factor,
-                // new_inner_size,
-                ..
-            } => {}
-            WindowEvent::ThemeChanged(_) => {}
-            _ => {}
+            WindowEvent::TouchpadPressure { .. } => {}
+            WindowEvent::AxisMotion { .. } => {}
+            WindowEvent::PinchGesture { .. } => {},
+            WindowEvent::PanGesture { .. } => {},
+            WindowEvent::DoubleTapGesture { .. } => {},
+            WindowEvent::RotationGesture { .. } => {},
         }
     }
-
-    #[cfg(feature = "accessibility")]
-    pub fn handle_accessibility_event(&mut self, event: &accesskit_winit::WindowEvent) {
-        match event {
-            accesskit_winit::WindowEvent::InitialTreeRequested => {
-                if let Some(ref mut state) = self.state {
-                    state.accessibility.build_tree(self.renderer.dom.as_ref());
-                }
-            }
-            accesskit_winit::WindowEvent::AccessibilityDeactivated => {
-                // TODO
-            }
-            accesskit_winit::WindowEvent::ActionRequested(_req) => {
-                // TODO
-            }
-        }
-    }
-
-    pub fn resume(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        proxy: &EventLoopProxy<UserEvent>,
-        rt: &tokio::runtime::Runtime,
-    ) {
-        let window_builder = || {
-            let window = event_loop
-                .create_window(Window::default_attributes().with_inner_size(LogicalSize {
-                    width: 800,
-                    height: 600,
-                }))
-                .unwrap();
-
-            // Initialize the accessibility and menu bar state.
-            #[cfg(any(feature = "accessibility", feature = "menu"))]
-            {
-                self.state = Some(State {
-                    #[cfg(feature = "accessibility")]
-                    accessibility: crate::accessibility::AccessibilityState::new(
-                        &window,
-                        proxy.clone(),
-                    ),
-                    #[cfg(feature = "menu")]
-                    _menu: init_menu(
-                        #[cfg(target_os = "windows")]
-                        &window,
-                    ),
-                });
-            }
-
-            let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
-            let mut viewport = Viewport::new((size.width, size.height));
-            viewport.set_hidpi_scale(window.scale_factor() as _);
-
-            (Arc::from(window), viewport)
-        };
-
-        rt.block_on(self.renderer.resume(window_builder));
-
-        let RenderState::Active(state) = &self.renderer.render_state else {
-            panic!("Renderer failed to resume");
-        };
-
-        self.waker = Some(crate::waker::tao_waker(proxy, state.window.id()));
-        self.renderer.render(&mut self.scene);
-    }
-
-    pub fn suspend(&mut self) {
-        self.waker = None;
-        self.renderer.suspend();
-    }
-}
-
-/// Initialize the default menu bar.
-#[cfg(all(feature = "menu", not(any(target_os = "android", target_os = "ios"))))]
-pub fn init_menu(#[cfg(target_os = "windows")] window: &Window) -> muda::Menu {
-    use muda::{AboutMetadata, Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu};
-
-    let menu = Menu::new();
-
-    // Build the about section
-    let about = Submenu::new("About", true);
-    about
-        .append_items(&[
-            &PredefinedMenuItem::about("Dioxus".into(), Option::from(AboutMetadata::default())),
-            &MenuItem::with_id(MenuId::new("dev.show_layout"), "Show layout", true, None),
-        ])
-        .unwrap();
-    menu.append(&about).unwrap();
-
-    #[cfg(target_os = "windows")]
-    {
-        use winit::raw_window_handle::*;
-        if let RawWindowHandle::Win32(handle) = window.window_handle().unwrap().as_raw() {
-            menu.init_for_hwnd(handle.hwnd.get()).unwrap();
-        }
-    }
-
-    // todo: menu on linux
-    // #[cfg(target_os = "linux")]
-    // {
-    //     use winit::platform::unix::WindowExtUnix;
-    //     menu.init_for_gtk_window(window.gtk_window(), window.default_vbox())
-    //         .unwrap();
-    // }
-
-    #[cfg(target_os = "macos")]
-    {
-        menu.init_for_nsapp();
-    }
-
-    menu
 }
