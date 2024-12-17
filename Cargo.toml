@@ -1,47 +1,47 @@
-[package]
-name = "leptos-blitz"
-version = "0.1.0"
-edition = "2021"
+# [package]
+# name = "leptos-blitz2"
+# version = "0.1.0"
+# edition = "2021"
 
-[features]
-accessibility = ["dep:accesskit", "dep:accesskit_winit"]
-menu = ["dep:muda"]
-default = ["accessibility", "menu"]
+# [features]
+# accessibility = ["dep:accesskit", "dep:accesskit_winit"]
+# menu = ["dep:muda"]
+# default = ["accessibility", "menu"]
 
-[dependencies]
-leptos = { git = "https://github.com/leptos-rs/leptos", rev = "41f8a97d33c011ca9acf6bbf4d35911f668b32f0", features = [
-    "csr",
-] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "41f8a97d33c011ca9acf6bbf4d35911f668b32f0", features = [
-    "tokio",
-] }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "41f8a97d33c011ca9acf6bbf4d35911f668b32f0" }
-send_wrapper = "0.6.0"
-paste = "1"
-slotmap = "1.0.7"
-leptos_blitz_macro = { workspace = true }
+# [dependencies]
+# leptos = { version = "0.7.0", features = [
+#     "csr",
+# ] }
+# any_spawner = { version = "0.2.0", features = [
+#     "tokio",
+# ] }
+# next_tuple = { version = "0.1.0" }
+# send_wrapper = "0.6.0"
+# paste = "1"
+# slotmap = "1.0.7"
+# leptos_blitz_macro = { workspace = true }
 
-# blitz
-accesskit = { version = "0.15.0", optional = true }
-accesskit_winit = { version = "0.21.1", optional = true }
-winit = { version = "0.30.2", features = ["rwh_06"] }
-muda = { version = "0.11.5", features = ["serde"], optional = true }
-tokio = { version = "1.25.0", features = ["full"] }
-futures-util = "0.3.30"
-vello = { version = "0.2", features = ["wgpu"] }
-wgpu = "0.20"
-style = { git = "https://github.com/DioxusLabs/stylo", rev = "905361c3c0c1c133300e800aaa03135211768ee6" }
-blitz = { git = "https://github.com/DioxusLabs/blitz", rev = "3c5cdb0aa002f69b288bf39256a7bbf5adeeed99" }
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "3c5cdb0aa002f69b288bf39256a7bbf5adeeed99" }
+# # blitz
+# accesskit = { version = "0.15.0", optional = true }
+# accesskit_winit = { version = "0.21.1", optional = true }
+# winit = { version = "0.30.2", features = ["rwh_06"] }
+# muda = { version = "0.11.5", features = ["serde"], optional = true }
+# tokio = { version = "1.25.0", features = ["full"] }
+# futures-util = "0.3.30"
+# vello = { version = "0.2", features = ["wgpu"] }
+# wgpu = "0.20"
+# style = { git = "https://github.com/DioxusLabs/stylo", rev = "905361c3c0c1c133300e800aaa03135211768ee6" }
+# blitz = { git = "https://github.com/DioxusLabs/blitz", rev = "3c5cdb0aa002f69b288bf39256a7bbf5adeeed99" }
+# blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "3c5cdb0aa002f69b288bf39256a7bbf5adeeed99" }
 
-[target.'cfg(target_os = "android")'.dependencies]
-android-activity = { version = "0.6.0", features = ["native-activity"] }
+# [target.'cfg(target_os = "android")'.dependencies]
+# android-activity = { version = "0.6.0", features = ["native-activity"] }
 
 [workspace]
-members = ["./macro"]
+members = ["crates/leptos-blitz"]
 resolver = "2"
 
 [workspace.dependencies]
-leptos_blitz_macro = { path = "./macro" }
+# leptos_blitz_macro = { path = "./macro" }
 
-leptos_hot_reload = { git = "https://github.com/leptos-rs/leptos", rev = "41f8a97d33c011ca9acf6bbf4d35911f668b32f0" }
+# leptos_hot_reload = { git = "https://github.com/leptos-rs/leptos", rev = "41f8a97d33c011ca9acf6bbf4d35911f668b32f0" }

@@ -1,0 +1,22 @@
+[package]
+name = "leptos-blitz"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+futures-util = "0.3.30"
+
+# Leptos
+leptos = { version = "0.7.0", features = ["csr"] }
+any_spawner = { version = "0.2.0", features = [
+    "tokio",
+] }
+
+# Blitz
+blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-net = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+
+tokio = { version = "1.25.0", features = ["full"] }
+
