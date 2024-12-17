@@ -1,9 +1,11 @@
 mod _leptos;
+mod _tachys;
+mod leptos_application;
 mod leptos_document;
 mod mutation_writer;
-mod _tachys;
 
 use _leptos::IntoView;
+use leptos_application::LeptosNativeApplication;
 pub use leptos_document::LeptosDocument;
 
 use blitz_dom::net::Resource;
@@ -40,9 +42,9 @@ where
     let window = WindowConfig::new(doc);
 
     // // Create application
-    // let mut application = LeptosNativeApplication::new(rt, event_loop.create_proxy());
-    // application.add_window(window);
+    let mut application = LeptosNativeApplication::new(rt, event_loop.create_proxy());
+    application.add_window(window);
 
     // // Run event loop
-    // event_loop.run_app(&mut application).unwrap();
+    event_loop.run_app(&mut application).unwrap();
 }
