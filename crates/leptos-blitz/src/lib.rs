@@ -1,4 +1,4 @@
-mod _leptos;
+pub mod _leptos;
 mod _tachys;
 mod leptos_application;
 mod leptos_document;

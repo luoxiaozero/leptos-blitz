@@ -1,11 +1,12 @@
 use crate::_leptos::{mount_to, prelude::Mountable, IntoView};
 use blitz_dom::{
-    net::Resource, ns, Atom, ColorScheme, Document, DocumentLike, ElementNodeData, NodeData,
-    QualName, Viewport, DEFAULT_CSS,
+    namespace_url, net::Resource, ns, Atom, ColorScheme, Document, DocumentLike, ElementNodeData,
+    NodeData, QualName, Viewport, DEFAULT_CSS,
 };
 use blitz_traits::net::NetProvider;
 use futures_util::FutureExt;
 use leptos::prelude::Owner;
+use std::cell::RefCell;
 use std::sync::Arc;
 use tokio::task::LocalSet;
 
@@ -17,28 +18,32 @@ pub(crate) fn qual_name(local_name: &str, namespace: Option<&str>) -> QualName {
     }
 }
 
+thread_local! {
+    static DOCUMENT: RefCell<Option<Document>> = RefCell::new(None);
+}
+
 pub struct LeptosDocument {
     #[allow(dead_code)]
     owner: Owner,
     mountable: Box<dyn Mountable>,
     local_set: LocalSet,
-    inner: Document,
+    // inner: Document,
 }
 
 impl AsRef<Document> for LeptosDocument {
     fn as_ref(&self) -> &Document {
-        &self.inner
+        LeptosDocument::document()
     }
 }
 impl AsMut<Document> for LeptosDocument {
     fn as_mut(&mut self) -> &mut Document {
-        &mut self.inner
+        LeptosDocument::document_mut()
     }
 }
 
 impl From<LeptosDocument> for Document {
     fn from(doc: LeptosDocument) -> Document {
-        doc.inner
+        LeptosDocument::document_take()
     }
 }
 
@@ -61,7 +66,7 @@ impl DocumentLike for LeptosDocument {
         // todo: this is harcoded for "click" events - eventually we actually need to handle proper propagation
         // if event.name == "click" {
         while let Some(node_id) = next_node_id {
-            let node = &self.inner.tree()[node_id];
+            let node = &self.inner().tree()[node_id];
 
             if let Some(element) = node.element_data() {
                 // let dioxus_id = DioxusDocument::dioxus_id(element);
@@ -107,17 +112,64 @@ impl LeptosDocument {
         // Include default and user-specified stylesheets
         doc.add_user_agent_stylesheet(DEFAULT_CSS);
 
-        let local_set = LocalSet::new();
         let root_element = doc.root_element().id;
+
+        DOCUMENT.with(|document| {
+            *document.borrow_mut() = Some(doc);
+        });
+
+        let local_set = LocalSet::new();
         let (owner, mountable) = local_set.block_on(rt, async { mount_to(root_element.into(), f) });
 
-        let mut doc = Self {
+        Self {
             local_set,
             owner,
             mountable,
-            inner: doc,
-        };
+        }
+    }
+}
 
-        doc
+impl LeptosDocument {
+    pub fn document() -> &'static Document {
+        DOCUMENT.with(|doc| {
+            let borrowed_doc = doc.borrow();
+            if let Some(ref document) = *borrowed_doc {
+                unsafe { std::mem::transmute::<&Document, &'static Document>(document) }
+            } else {
+                panic!("Document is None");
+            }
+        })
+    }
+
+    pub fn document_mut() -> &'static mut Document {
+        DOCUMENT.with(|doc| {
+            let mut borrowed_doc = doc.borrow_mut();
+            if let Some(ref mut document) = *borrowed_doc {
+                unsafe { std::mem::transmute::<&mut Document, &'static mut Document>(document) }
+            } else {
+                panic!("Document is None");
+            }
+        })
+    }
+
+    pub fn document_take() -> Document {
+        DOCUMENT.with(|doc| {
+            let mut borrowed_doc = doc.borrow_mut();
+            if let Some(document) = borrowed_doc.take() {
+                document
+            } else {
+                panic!("Document is None");
+            }
+        })
+    }
+
+    fn inner(&self) -> &'static Document {
+        Self::document()
+    }
+}
+
+impl Drop for LeptosDocument {
+    fn drop(&mut self) {
+        self.mountable.unmount();
     }
 }

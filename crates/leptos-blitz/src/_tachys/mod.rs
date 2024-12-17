@@ -6,6 +6,9 @@ pub mod prelude {
     };
 }
 
+/// Types for building a statically-typed HTML view tree.
+pub mod html;
+/// Defines various backends that can render views.
 pub mod renderer;
 
 pub use renderer::dom::Dom;

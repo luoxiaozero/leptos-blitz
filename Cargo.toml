@@ -45,3 +45,7 @@ resolver = "2"
 # leptos_blitz_macro = { path = "./macro" }
 
 # leptos_hot_reload = { git = "https://github.com/leptos-rs/leptos", rev = "41f8a97d33c011ca9acf6bbf4d35911f668b32f0" }
+
+# [package]
+# name = "leptos-blitz-examples"
+# version = "0.0.1"
