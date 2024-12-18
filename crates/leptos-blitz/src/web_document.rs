@@ -222,6 +222,12 @@ impl Element {
                             name: qual_name(name, ns),
                             value: val.to_string(),
                         });
+
+                        // TODO
+                        if name == "style" {
+                            let doc = WebDocument::document();
+                            element.flush_style_attribute(doc.guard());
+                        }
                     }
                 }
             }

@@ -20,6 +20,19 @@ where
     fn into_view(self) -> View<Self>;
 }
 
+impl<T> IntoView for T
+where
+    T: Sized + Render + RenderHtml + Send, //+ AddAnyAttr,
+{
+    fn into_view(self) -> View<Self> {
+        View {
+            inner: self,
+            #[cfg(debug_assertions)]
+            view_marker: None,
+        }
+    }
+}
+
 impl<T: Render> Render for View<T> {
     type State = T::State;
 

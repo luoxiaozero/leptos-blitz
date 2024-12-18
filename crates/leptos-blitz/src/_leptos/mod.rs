@@ -6,8 +6,10 @@ pub use mount::*;
 
 /// Exports all the core types of the library.
 pub mod prelude {
-    pub use super::into_view::*;
     pub use crate::_tachys::prelude::*;
+    pub use reactive_graph::prelude::*;
+
+    pub use super::into_view::*;
     pub use reactive_graph::{
         actions::*, computed::*, effect::*, graph::untrack, owner::*, signal::*, wrappers::read::*,
     };
@@ -17,3 +19,5 @@ pub mod prelude {
 
 /// HTML element types.
 pub use crate::_tachys::html::element as html;
+/// HTML event types.
+pub use crate::_tachys::html::event as ev;

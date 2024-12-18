@@ -15,6 +15,9 @@ futures = "0.3.31"
 parking_lot = "0.12.3"
 html-escape = "0.2.13"
 reactive_graph = { version = "0.1.0", features = ["serde"] }
+const_str_slice_concat = "0.1.0"
+slotmap = "1.0.7"
+send_wrapper = "0.6.0"
 
 # Blitz
 blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }

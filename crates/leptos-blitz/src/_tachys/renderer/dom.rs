@@ -1,6 +1,7 @@
 use super::CastFrom;
 use crate::_tachys::view::Mountable;
 use crate::web_document::{self, WebDocument};
+use blitz_dom::NodeData;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Dom;
@@ -126,6 +127,16 @@ impl Mountable for Text {
     }
 }
 
+impl CastFrom<Node> for Text {
+    fn cast_from(source: Node) -> Option<Self> {
+        let doc = WebDocument::document();
+        let node_id = source.node_id();
+        let node = doc.get_node(node_id).unwrap();
+
+        node.is_text_node().then_some(Text::from(node_id))
+    }
+}
+
 impl Mountable for web_document::Comment {
     fn unmount(&mut self) {
         Dom::remove_self(self);
@@ -142,6 +153,20 @@ impl Mountable for web_document::Comment {
             return true;
         }
         false
+    }
+}
+
+impl CastFrom<Node> for web_document::Comment {
+    fn cast_from(source: Node) -> Option<Self> {
+        let doc = WebDocument::document();
+        let node_id = source.node_id();
+        let node = doc.get_node(node_id).unwrap();
+
+        if matches!(node.raw_dom_data, NodeData::Comment) {
+            Some(Self::from(node_id))
+        } else {
+            None
+        }
     }
 }
 

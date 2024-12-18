@@ -1,6 +1,7 @@
 /// Commonly-used traits.
 pub mod prelude {
     pub use super::{
+        html::element::ElementChild,
         renderer::dom::Dom,
         view::{Mountable, Render, RenderHtml},
     };

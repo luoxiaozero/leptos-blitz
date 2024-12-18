@@ -1,12 +1,15 @@
-use crate::_leptos::{
-    mount_to,
-    prelude::{Mountable, Owner},
-    IntoView,
-};
 use crate::web_document::WebDocument;
+use crate::{
+    _leptos::{
+        mount_to,
+        prelude::{Mountable, Owner},
+        IntoView,
+    },
+    web_document,
+};
 use blitz_dom::{
-    namespace_url, net::Resource, ns, Atom, ColorScheme, Document, DocumentLike, ElementNodeData,
-    NodeData, QualName, Viewport, DEFAULT_CSS,
+    events::EventData, namespace_url, net::Resource, ns, Atom, ColorScheme, Document, DocumentLike,
+    ElementNodeData, NodeData, QualName, Viewport, DEFAULT_CSS,
 };
 use blitz_traits::net::NetProvider;
 use futures_util::FutureExt;
@@ -56,7 +59,7 @@ impl DocumentLike for LeptosDocument {
         // Collect the nodes into a chain by traversing upwards
         // This is important so the "capture" phase can be implemented
         let mut next_node_id = Some(event.target);
-        // let mut chain = Vec::with_capacity(16);
+        let mut chain = Vec::with_capacity(16);
 
         // if it's a capturing event, we want to fill in the chain with the parent nodes
         // until we reach the root - that way we can call the listeners in the correct order
@@ -67,13 +70,28 @@ impl DocumentLike for LeptosDocument {
         while let Some(node_id) = next_node_id {
             let node = &self.inner().tree()[node_id];
 
-            if let Some(element) = node.element_data() {
-                // let dioxus_id = DioxusDocument::dioxus_id(element);
-                // chain.push(DxNodeIds { node_id, dioxus_id })
-                // chain.push(parent);
+            if let Some(_element) = node.element_data() {
+                chain.push(web_document::Element::from(node_id))
             }
 
             next_node_id = node.parent;
+        }
+
+        match event.data {
+            EventData::Click { x, y, mods } => {
+                let doc = WebDocument::document();
+                for el in chain.iter().rev() {
+                    // let node = doc.get_node(el.node_id()).unwrap().attr(LocalName);
+                    // if node.attr.name.local.as_ref() == "onclick" {
+                    //     if let Ok(key) = attr.value.parse::<u64>() {
+                    //         Event::call_mut(key);
+                    //     }
+                    // }
+                }
+            }
+            EventData::KeyPress { event, mods } => todo!(),
+            EventData::Ime(ime) => todo!(),
+            EventData::Hover => todo!(),
         }
     }
 }

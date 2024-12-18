@@ -1,18 +1,13 @@
-use super::{
-    Mountable, Position, PositionState, Render, RenderHtml, 
-};
-use crate::{
+use super::{Mountable, Position, PositionState, Render, RenderHtml};
+use crate::_tachys::{
     html::attribute::Attribute,
-    hydration::Cursor,
-    renderer::Rndr,
+    renderer::{types, Rndr},
     view::{add_attr::AddAnyAttr, StreamBuilder},
 };
-use const_str_slice_concat::{
-    const_concat, const_concat_with_separator, str_from_buffer,
-};
+use const_str_slice_concat::{const_concat, const_concat_with_separator, str_from_buffer};
 
 impl Render for () {
-    type State = crate::renderer::types::Placeholder;
+    type State = types::Placeholder;
 
     fn build(self) -> Self::State {
         Rndr::create_placeholder()
@@ -40,14 +35,6 @@ impl RenderHtml for () {
         }
     }
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        cursor: &Cursor,
-        position: &PositionState,
-    ) -> Self::State {
-        cursor.next_placeholder(position)
-    }
-
     async fn resolve(self) -> Self::AsyncOutput {}
 
     fn dry_resolve(&mut self) {}
@@ -56,10 +43,7 @@ impl RenderHtml for () {
 impl AddAnyAttr for () {
     type Output<SomeNewAttr: Attribute> = ();
 
-    fn add_any_attr<NewAttr: Attribute>(
-        self,
-        _attr: NewAttr,
-    ) -> Self::Output<NewAttr>
+    fn add_any_attr<NewAttr: Attribute>(self, _attr: NewAttr) -> Self::Output<NewAttr>
     where
         Self::Output<NewAttr>: RenderHtml,
     {
@@ -69,12 +53,7 @@ impl AddAnyAttr for () {
 impl Mountable for () {
     fn unmount(&mut self) {}
 
-    fn mount(
-        &mut self,
-        _parent: &crate::renderer::types::Element,
-        _marker: Option<&crate::renderer::types::Node>,
-    ) {
-    }
+    fn mount(&mut self, _parent: &types::Element, _marker: Option<&types::Node>) {}
 
     fn insert_before_this(&self, _child: &mut dyn Mountable) -> bool {
         false
@@ -139,14 +118,9 @@ where
     ) where
         Self: Sized,
     {
-        self.0.to_html_async_with_buf::<OUT_OF_ORDER>(
-            buf,
-            position,
-            escape,
-            mark_branches,
-        );
+        self.0
+            .to_html_async_with_buf::<OUT_OF_ORDER>(buf, position, escape, mark_branches);
     }
-
 
     async fn resolve(self) -> Self::AsyncOutput {
         (self.0.resolve().await,)
@@ -179,10 +153,7 @@ where
 {
     type Output<SomeNewAttr: Attribute> = (A::Output<SomeNewAttr>,);
 
-    fn add_any_attr<NewAttr: Attribute>(
-        self,
-        attr: NewAttr,
-    ) -> Self::Output<NewAttr>
+    fn add_any_attr<NewAttr: Attribute>(self, attr: NewAttr) -> Self::Output<NewAttr>
     where
         Self::Output<NewAttr>: RenderHtml,
     {
@@ -255,15 +226,6 @@ macro_rules! impl_view_for_tuples {
                 $($ty.to_html_async_with_buf::<OUT_OF_ORDER>(buf, position, escape, mark_branches));*
 			}
 
-			fn hydrate<const FROM_SERVER: bool>(self, cursor: &Cursor, position: &PositionState) -> Self::State {
-                #[allow(non_snake_case)]
-					let ($first, $($ty,)* ) = self;
-					(
-						$first.hydrate::<FROM_SERVER>(cursor, position),
-						$($ty.hydrate::<FROM_SERVER>(cursor, position)),*
-					)
-			}
-
             async fn resolve(self) -> Self::AsyncOutput {
                 #[allow(non_snake_case)]
                 let ($first, $($ty,)*) = self;
@@ -316,8 +278,8 @@ macro_rules! impl_view_for_tuples {
 
 			fn mount(
 				&mut self,
-				parent: &crate::renderer::types::Element,
-				marker: Option<&crate::renderer::types::Node>,
+				parent: &types::Element,
+				marker: Option<&types::Node>,
 			) {
                 #[allow(non_snake_case)] // better macro performance
                 let ($first, $($ty,)*) = self;
@@ -377,25 +339,10 @@ impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
 impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S);
-impl_view_for_tuples!(
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T
-);
-impl_view_for_tuples!(
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U
-);
-impl_view_for_tuples!(
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V
-);
-impl_view_for_tuples!(
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W
-);
-impl_view_for_tuples!(
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X
-);
-impl_view_for_tuples!(
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y
-);
-impl_view_for_tuples!(
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y,
-    Z
-);
+impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T);
+impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U);
+impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V);
+impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W);
+impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X);
+impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y);
+impl_view_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);

@@ -1,10 +1,46 @@
-use leptos::tachys::{
-    html::attribute::{Attribute, NextAttribute},
-    renderer::Renderer,
+use super::{
+    attribute::{Attribute, NextAttribute},
+    element::HtmlElement,
 };
+use crate::_tachys::renderer::{types, Rndr};
+use next_tuple::NextTuple;
 use send_wrapper::SendWrapper;
 use slotmap::{DefaultKey, Key, KeyData, SlotMap};
-use std::{borrow::Cow, cell::RefCell, fmt::Debug, marker::PhantomData, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, fmt::Debug, rc::Rc};
+
+impl<E, At, Ch> HtmlElement<E, At, Ch>
+where
+    At: Attribute,
+{
+    pub fn on<EV, F>(
+        self,
+        event: EV,
+        cb: F,
+    ) -> HtmlElement<E, <At as NextTuple>::Output<On<EV, F>>, Ch>
+    where
+        EV: EventDescriptor + Send + 'static,
+        EV::EventType: 'static,
+        EV::EventType: From<Event>,
+        F: FnMut(EV::EventType) + 'static,
+        At: NextTuple,
+        <At as NextTuple>::Output<On<EV, F>>: Attribute,
+    {
+        let HtmlElement {
+            tag,
+            children,
+            attributes,
+            #[cfg(debug_assertions)]
+            defined_at,
+        } = self;
+        HtmlElement {
+            tag,
+            children,
+            attributes: attributes.next_tuple(on(event, cb)),
+            #[cfg(debug_assertions)]
+            defined_at,
+        }
+    }
+}
 
 thread_local! {
     static EVENTS: RefCell<SlotMap<DefaultKey, Box<dyn FnMut(Event)>>> = Default::default();
@@ -42,28 +78,25 @@ where
     }
 }
 
-pub fn on<E, R, F>(event: E, cb: F) -> On<E, F, R>
+fn on<E, F>(event: E, cb: F) -> On<E, F>
 where
     F: FnMut(E::EventType) + 'static,
     E: EventDescriptor + Send + 'static,
     E::EventType: 'static,
-    R: Renderer,
     E::EventType: From<Event>,
 {
     On {
         event,
         cb: SendWrapper::new(cb),
-        ty: PhantomData,
     }
 }
 
-pub struct On<E, F, R> {
+pub struct On<E, F> {
     event: E,
     cb: SendWrapper<F>,
-    ty: PhantomData<R>,
 }
 
-impl<E, F, R> Clone for On<E, F, R>
+impl<E, F> Clone for On<E, F>
 where
     E: Clone,
     F: Clone,
@@ -72,7 +105,6 @@ where
         Self {
             event: self.event.clone(),
             cb: self.cb.clone(),
-            ty: PhantomData,
         }
     }
 }
@@ -90,23 +122,22 @@ impl<T> RemoveEventHandler<T> {
     }
 }
 
-impl<E, F, R> On<E, F, R>
+impl<E, F> On<E, F>
 where
     F: EventCallback<E::EventType>,
     E: EventDescriptor + Send + 'static,
     E::EventType: 'static,
-    R: Renderer,
     E::EventType: From<Event>,
 {
-    pub fn attach(self, el: &R::Element) -> RemoveEventHandler<R::Element> {
-        fn attach_inner<R: Renderer>(
-            el: &R::Element,
+    pub fn attach(self, el: &types::Element) -> RemoveEventHandler<types::Element> {
+        fn attach_inner(
+            el: &types::Element,
             cb: Box<dyn FnMut(Event)>,
             html_name: Cow<'static, str>,
             _delegation_key: Option<Cow<'static, str>>,
-        ) -> RemoveEventHandler<R::Element> {
+        ) -> RemoveEventHandler<types::Element> {
             let key = Event::insert(cb);
-            R::set_attribute(el, &html_name, &key.to_string());
+            Rndr::set_attribute(el, &html_name, &key.to_string());
 
             RemoveEventHandler::new(move |_| {
                 Event::remove(key);
@@ -120,7 +151,7 @@ where
             cb.invoke(ev);
         }) as Box<dyn FnMut(Event)>;
 
-        attach_inner::<R>(
+        attach_inner(
             el,
             cb,
             self.event.html_name(),
@@ -129,30 +160,28 @@ where
     }
 }
 
-impl<E, F, R> Debug for On<E, F, R>
+impl<E, F> Debug for On<E, F>
 where
     E: Debug,
-    R: Renderer,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("On").field(&self.event).finish()
     }
 }
 
-impl<E, F, R> Attribute<R> for On<E, F, R>
+impl<E, F> Attribute for On<E, F>
 where
     F: EventCallback<E::EventType>,
     E: EventDescriptor + Send + 'static,
     E::EventType: 'static,
-    R: Renderer,
     E::EventType: From<Event>,
 {
     const MIN_LENGTH: usize = 0;
     type AsyncOutput = Self;
     // a function that can be called once to remove the event listener
-    type State = (R::Element, Option<RemoveEventHandler<R::Element>>);
-    type Cloneable = On<E, SharedEventCallback<E::EventType>, R>;
-    type CloneableOwned = On<E, SharedEventCallback<E::EventType>, R>;
+    type State = (types::Element, Option<RemoveEventHandler<types::Element>>);
+    type Cloneable = On<E, SharedEventCallback<E::EventType>>;
+    type CloneableOwned = On<E, SharedEventCallback<E::EventType>>;
 
     #[inline(always)]
     fn html_len(&self) -> usize {
@@ -170,13 +199,13 @@ where
     }
 
     #[inline(always)]
-    fn hydrate<const FROM_SERVER: bool>(self, el: &R::Element) -> Self::State {
+    fn hydrate<const FROM_SERVER: bool>(self, el: &types::Element) -> Self::State {
         let cleanup = self.attach(el);
         (el.clone(), Some(cleanup))
     }
 
     #[inline(always)]
-    fn build(self, el: &R::Element) -> Self::State {
+    fn build(self, el: &types::Element) -> Self::State {
         let cleanup = self.attach(el);
         (el.clone(), Some(cleanup))
     }
@@ -194,7 +223,6 @@ where
         On {
             cb: SendWrapper::new(self.cb.take().into_shared()),
             event: self.event,
-            ty: self.ty,
         }
     }
 
@@ -202,7 +230,6 @@ where
         On {
             cb: SendWrapper::new(self.cb.take().into_shared()),
             event: self.event,
-            ty: self.ty,
         }
     }
 
@@ -213,17 +240,16 @@ where
     }
 }
 
-impl<E, F, R> NextAttribute<R> for On<E, F, R>
+impl<E, F> NextAttribute for On<E, F>
 where
     F: EventCallback<E::EventType>,
     E: EventDescriptor + Send + 'static,
     E::EventType: 'static,
-    R: Renderer,
     E::EventType: From<Event>,
 {
-    type Output<NewAttr: Attribute<R>> = (Self, NewAttr);
+    type Output<NewAttr: Attribute> = (Self, NewAttr);
 
-    fn add_any_attr<NewAttr: Attribute<R>>(self, new_attr: NewAttr) -> Self::Output<NewAttr> {
+    fn add_any_attr<NewAttr: Attribute>(self, new_attr: NewAttr) -> Self::Output<NewAttr> {
         (self, new_attr)
     }
 }
