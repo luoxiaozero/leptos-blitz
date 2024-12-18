@@ -9,12 +9,11 @@ pub mod prelude {
     pub use super::into_view::*;
     pub use crate::_tachys::prelude::*;
     pub use reactive_graph::{
-        actions::*, computed::*, effect::*, graph::untrack, owner::*,
-        signal::*, wrappers::read::*,
+        actions::*, computed::*, effect::*, graph::untrack, owner::*, signal::*, wrappers::read::*,
     };
 }
 
-pub use crate::_tachys as tachys;
+// pub use crate::_tachys as tachys;
 
 /// HTML element types.
 pub use crate::_tachys::html::element as html;

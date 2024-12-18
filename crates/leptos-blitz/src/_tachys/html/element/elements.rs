@@ -1,8 +1,7 @@
 use crate::_tachys::{
     html::{
-    attribute::{Attr, Attribute, AttributeValue},
-
-        element::{ElementWithChildren, HtmlElement},
+        attribute::{Attr, Attribute, AttributeValue},
+        element::{ElementType, ElementWithChildren, HtmlElement},
     },
     view::Render,
 };
@@ -49,13 +48,13 @@ macro_rules! html_element_inner {
                     #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
                     pub fn $attr<V>(self, value: V) -> HtmlElement <
                         $struct_name,
-                        <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>,
+                        <At as NextTuple>::Output<Attr<$crate::_tachys::html::attribute::[<$attr:camel>], V>>,
                         Ch
                     >
                     where
                         V: AttributeValue,
                         At: NextTuple,
-                        <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
+                        <At as NextTuple>::Output<Attr<$crate::_tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
                     {
                         let HtmlElement {
                             #[cfg(debug_assertions)]
@@ -69,25 +68,25 @@ macro_rules! html_element_inner {
                             defined_at,
                             tag,
                             children,
-                            attributes: attributes.next_tuple(leptos_blitz::_leptos::tachys::html::attribute::$attr(value)),
+                            attributes: attributes.next_tuple($crate::_tachys::html::attribute::$attr(value)),
                         }
                     }
                 )*
             }
 
-            // impl ElementType for $struct_name {
-            //     type Output = web_sys::$ty;
+            impl ElementType for $struct_name {
+                type Output = $crate::_tachys::renderer::types::Element;
 
-            //     const TAG: &'static str = stringify!($tag);
-            //     const SELF_CLOSING: bool = false;
-            //     const ESCAPE_CHILDREN: bool = $escape;
-            //     const NAMESPACE: Option<&'static str> = None;
+                const TAG: &'static str = stringify!($tag);
+                const SELF_CLOSING: bool = false;
+                const ESCAPE_CHILDREN: bool = $escape;
+                const NAMESPACE: Option<&'static str> = None;
 
-            //     #[inline(always)]
-            //     fn tag(&self) -> &str {
-            //         Self::TAG
-            //     }
-            // }
+                #[inline(always)]
+                fn tag(&self) -> &str {
+                    Self::TAG
+                }
+            }
 
             impl ElementWithChildren for $struct_name {}
         }
@@ -154,13 +153,13 @@ macro_rules! html_self_closing_elements {
                         #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
                         pub fn $attr<V>(self, value: V) -> HtmlElement<
                             [<$tag:camel>],
-                            <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>,
+                            <At as NextTuple>::Output<Attr<$crate::_tachys::html::attribute::[<$attr:camel>], V>>,
                             (),
                         >
                         where
                             V: AttributeValue,
                             At: NextTuple,
-                            <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
+                            <At as NextTuple>::Output<Attr<$crate::_tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
                         {
                             let HtmlElement {
                                  #[cfg(debug_assertions)]
@@ -174,25 +173,25 @@ macro_rules! html_self_closing_elements {
                                 defined_at,
                                 tag,
                                 children,
-                                attributes: attributes.next_tuple(leptos_blitz::_leptos::tachys::html::attribute::$attr(value)),
+                                attributes: attributes.next_tuple($crate::_tachys::html::attribute::$attr(value)),
                             }
                         }
                     )*
                 }
 
-                // impl ElementType for [<$tag:camel>] {
-                //     type Output = web_sys::$ty;
+                impl ElementType for [<$tag:camel>] {
+                    type Output = $crate::_tachys::renderer::types::Element;
 
-                //     const TAG: &'static str = stringify!($tag);
-                //     const SELF_CLOSING: bool = true;
-                //     const ESCAPE_CHILDREN: bool = $escape;
-                //     const NAMESPACE: Option<&'static str> = None;
+                    const TAG: &'static str = stringify!($tag);
+                    const SELF_CLOSING: bool = true;
+                    const ESCAPE_CHILDREN: bool = $escape;
+                    const NAMESPACE: Option<&'static str> = None;
 
-                //     #[inline(always)]
-                //     fn tag(&self) -> &str {
-                //         Self::TAG
-                //     }
-                // }
+                    #[inline(always)]
+                    fn tag(&self) -> &str {
+                        Self::TAG
+                    }
+                }
             )*
 		}
     }

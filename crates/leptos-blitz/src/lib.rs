@@ -1,5 +1,5 @@
 pub mod _leptos;
-mod _tachys;
+pub mod _tachys;
 mod leptos_application;
 mod leptos_document;
 mod web_document;

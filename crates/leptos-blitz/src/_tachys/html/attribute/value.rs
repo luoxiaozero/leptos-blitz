@@ -1,12 +1,11 @@
-use crate::_tachys::renderer::{Rndr, types};
+use crate::_tachys::renderer::{types, Rndr};
 use std::{
     borrow::Cow,
     future::Future,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
     num::{
-        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8,
-        NonZeroIsize, NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64,
-        NonZeroU8, NonZeroUsize,
+        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
+        NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize,
     },
     sync::Arc,
 };
@@ -63,18 +62,10 @@ pub trait AttributeValue: Send {
 
     /// Adds interactivity as necessary, given DOM nodes that were created from HTML that has
     /// either been rendered on the server, or cloned for a `<template>`.
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        key: &str,
-        el: &types::Element,
-    ) -> Self::State;
+    fn hydrate<const FROM_SERVER: bool>(self, key: &str, el: &types::Element) -> Self::State;
 
     /// Adds this attribute to the element during client-side rendering.
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State;
+    fn build(self, el: &types::Element, key: &str) -> Self::State;
 
     /// Applies a new value for the attribute.
     fn rebuild(self, key: &str, state: &mut Self::State);
@@ -108,19 +99,9 @@ impl AttributeValue for () {
 
     fn to_template(_key: &str, _buf: &mut String) {}
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        _key: &str,
-        _el: &types::Element,
-    ) {
-    }
+    fn hydrate<const FROM_SERVER: bool>(self, _key: &str, _el: &types::Element) {}
 
-    fn build(
-        self,
-        _el: &types::Element,
-        _key: &str,
-    ) -> Self::State {
-    }
+    fn build(self, _el: &types::Element, _key: &str) -> Self::State {}
 
     fn rebuild(self, _key: &str, _state: &mut Self::State) {}
 
@@ -157,11 +138,7 @@ impl<'a> AttributeValue for &'a str {
 
     fn to_template(_key: &str, _buf: &mut String) {}
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        key: &str,
-        el: &types::Element,
-    ) -> Self::State {
+    fn hydrate<const FROM_SERVER: bool>(self, key: &str, el: &types::Element) -> Self::State {
         // if we're actually hydrating from SSRed HTML, we don't need to set the attribute
         // if we're hydrating from a CSR-cloned <template>, we do need to set non-StaticAttr attributes
         if !FROM_SERVER {
@@ -170,11 +147,7 @@ impl<'a> AttributeValue for &'a str {
         (el.clone(), self)
     }
 
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State {
+    fn build(self, el: &types::Element, key: &str) -> Self::State {
         Rndr::set_attribute(el, key, self);
         (el.to_owned(), self)
     }
@@ -203,9 +176,7 @@ impl<'a> AttributeValue for &'a str {
 }
 
 #[cfg(feature = "nightly")]
-impl<const V: &'static str> AttributeValue
-    for crate::view::static_types::Static<V>
-{
+impl<const V: &'static str> AttributeValue for crate::view::static_types::Static<V> {
     type AsyncOutput = Self;
     type State = ();
     type Cloneable = Self;
@@ -227,18 +198,9 @@ impl<const V: &'static str> AttributeValue
         buf.push('"');
     }
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        _key: &str,
-        _el: &types::Element,
-    ) -> Self::State {
-    }
+    fn hydrate<const FROM_SERVER: bool>(self, _key: &str, _el: &types::Element) -> Self::State {}
 
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State {
+    fn build(self, el: &types::Element, key: &str) -> Self::State {
         <&str as AttributeValue>::build(V, el, key);
     }
 
@@ -275,24 +237,12 @@ impl<'a> AttributeValue for &'a String {
 
     fn to_template(_key: &str, _buf: &mut String) {}
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        key: &str,
-        el: &types::Element,
-    ) -> Self::State {
-        let (el, _) = <&str as AttributeValue>::hydrate::<FROM_SERVER>(
-            self.as_str(),
-            key,
-            el,
-        );
+    fn hydrate<const FROM_SERVER: bool>(self, key: &str, el: &types::Element) -> Self::State {
+        let (el, _) = <&str as AttributeValue>::hydrate::<FROM_SERVER>(self.as_str(), key, el);
         (el, self)
     }
 
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State {
+    fn build(self, el: &types::Element, key: &str) -> Self::State {
         Rndr::set_attribute(el, key, self);
         (el.clone(), self)
     }
@@ -336,24 +286,12 @@ impl AttributeValue for String {
 
     fn to_template(_key: &str, _buf: &mut String) {}
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        key: &str,
-        el: &types::Element,
-    ) -> Self::State {
-        let (el, _) = <&str as AttributeValue>::hydrate::<FROM_SERVER>(
-            self.as_str(),
-            key,
-            el,
-        );
+    fn hydrate<const FROM_SERVER: bool>(self, key: &str, el: &types::Element) -> Self::State {
+        let (el, _) = <&str as AttributeValue>::hydrate::<FROM_SERVER>(self.as_str(), key, el);
         (el, self)
     }
 
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State {
+    fn build(self, el: &types::Element, key: &str) -> Self::State {
         Rndr::set_attribute(el, key, &self);
         (el.clone(), self)
     }
@@ -397,24 +335,12 @@ impl AttributeValue for Arc<str> {
 
     fn to_template(_key: &str, _buf: &mut String) {}
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        key: &str,
-        el: &types::Element,
-    ) -> Self::State {
-        let (el, _) = <&str as AttributeValue>::hydrate::<FROM_SERVER>(
-            self.as_ref(),
-            key,
-            el,
-        );
+    fn hydrate<const FROM_SERVER: bool>(self, key: &str, el: &types::Element) -> Self::State {
+        let (el, _) = <&str as AttributeValue>::hydrate::<FROM_SERVER>(self.as_ref(), key, el);
         (el, self)
     }
 
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State {
+    fn build(self, el: &types::Element, key: &str) -> Self::State {
         Rndr::set_attribute(el, key, &self);
         (el.clone(), self)
     }
@@ -462,11 +388,7 @@ impl AttributeValue for bool {
 
     fn to_template(_key: &str, _buf: &mut String) {}
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        key: &str,
-        el: &types::Element,
-    ) -> Self::State {
+    fn hydrate<const FROM_SERVER: bool>(self, key: &str, el: &types::Element) -> Self::State {
         // if we're actually hydrating from SSRed HTML, we don't need to set the attribute
         // if we're hydrating from a CSR-cloned <template>, we do need to set non-StaticAttr attributes
         if !FROM_SERVER {
@@ -475,11 +397,7 @@ impl AttributeValue for bool {
         (el.clone(), self)
     }
 
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State {
+    fn build(self, el: &types::Element, key: &str) -> Self::State {
         if self {
             Rndr::set_attribute(el, key, "");
         }
@@ -537,20 +455,12 @@ where
 
     fn to_template(_key: &str, _buf: &mut String) {}
 
-    fn hydrate<const FROM_SERVER: bool>(
-        self,
-        key: &str,
-        el: &types::Element,
-    ) -> Self::State {
+    fn hydrate<const FROM_SERVER: bool>(self, key: &str, el: &types::Element) -> Self::State {
         let state = self.map(|v| v.hydrate::<FROM_SERVER>(key, el));
         (el.clone(), state)
     }
 
-    fn build(
-        self,
-        el: &types::Element,
-        key: &str,
-    ) -> Self::State {
+    fn build(self, el: &types::Element, key: &str) -> Self::State {
         let el = el.clone();
         let v = self.map(|v| v.build(&el, key));
         (el, v)

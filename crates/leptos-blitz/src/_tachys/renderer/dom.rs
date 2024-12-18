@@ -1,4 +1,4 @@
-use super::{CastFrom};
+use super::CastFrom;
 use crate::_tachys::view::Mountable;
 use crate::web_document::{self, WebDocument};
 
@@ -55,6 +55,11 @@ impl Dom {
         node.remove();
     }
 
+    pub fn remove_self(node: &Node) {
+        let doc = WebDocument::document_mut();
+        doc.remove_node(node.node_id());
+    }
+
     pub fn get_parent(node: &Node) -> Option<Node> {
         node.parent_node()
     }
@@ -104,7 +109,7 @@ impl Mountable for Node {
 
 impl Mountable for Text {
     fn unmount(&mut self) {
-        self.remove();
+        Dom::remove_self(self);
     }
 
     fn mount(&mut self, parent: &Element, marker: Option<&Node>) {
@@ -112,7 +117,7 @@ impl Mountable for Text {
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable) -> bool {
-        let parent = Dom::get_parent(self.as_ref()).and_then(Element::cast_from);
+        let parent = Dom::get_parent(&self).and_then(Element::cast_from);
         if let Some(parent) = parent {
             child.mount(&parent, Some(self));
             return true;
@@ -123,7 +128,7 @@ impl Mountable for Text {
 
 impl Mountable for web_document::Comment {
     fn unmount(&mut self) {
-        self.remove();
+        Dom::remove_self(self);
     }
 
     fn mount(&mut self, parent: &Element, marker: Option<&Node>) {

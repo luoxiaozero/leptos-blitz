@@ -3,10 +3,12 @@ mod elements;
 pub use elements::*;
 
 use crate::_tachys::{
-    html::attribute::Attribute,
+    html::attribute::{escape_attr, Attribute, NextAttribute},
     renderer::{types, CastFrom, Rndr},
-    view::{IntoRender, Mountable, Render},
+    ssr::StreamBuilder,
+    view::{add_attr::AddAnyAttr, IntoRender, Mountable, Position, Render, RenderHtml},
 };
+use futures::future::join;
 use next_tuple::NextTuple;
 use std::ops::Deref;
 #[cfg(debug_assertions)]
@@ -61,6 +63,33 @@ where
             tag,
             attributes,
             children: children.next_tuple(child.into_render()),
+        }
+    }
+}
+
+impl<E, At, Ch> AddAnyAttr for HtmlElement<E, At, Ch>
+where
+    E: ElementType + Send,
+    At: Attribute + Send,
+    Ch: RenderHtml + Send,
+{
+    type Output<SomeNewAttr: Attribute> =
+        HtmlElement<E, <At as NextAttribute>::Output<SomeNewAttr>, Ch>;
+
+    fn add_any_attr<NewAttr: Attribute>(self, attr: NewAttr) -> Self::Output<NewAttr> {
+        let HtmlElement {
+            #[cfg(any(debug_assertions, leptos_debuginfo))]
+            defined_at,
+            tag,
+            attributes,
+            children,
+        } = self;
+        HtmlElement {
+            #[cfg(any(debug_assertions, leptos_debuginfo))]
+            defined_at,
+            tag,
+            attributes: attributes.add_any_attr(attr),
+            children,
         }
     }
 }
@@ -135,6 +164,171 @@ where
     }
 }
 
+impl<E, At, Ch> RenderHtml for HtmlElement<E, At, Ch>
+where
+    E: ElementType + Send,
+    At: Attribute + Send,
+    Ch: RenderHtml + Send,
+{
+    type AsyncOutput = HtmlElement<E, At::AsyncOutput, Ch::AsyncOutput>;
+
+    const MIN_LENGTH: usize = if E::SELF_CLOSING {
+        3 // < ... />
+        + E::TAG.len()
+        + At::MIN_LENGTH
+    } else {
+        2 // < ... >
+        + E::TAG.len()
+        + At::MIN_LENGTH
+        + Ch::MIN_LENGTH
+        + 3 // </ ... >
+        + E::TAG.len()
+    };
+
+    fn dry_resolve(&mut self) {
+        self.attributes.dry_resolve();
+        self.children.dry_resolve();
+    }
+
+    async fn resolve(self) -> Self::AsyncOutput {
+        let (attributes, children) = join(self.attributes.resolve(), self.children.resolve()).await;
+        HtmlElement {
+            #[cfg(any(debug_assertions, leptos_debuginfo))]
+            defined_at: self.defined_at,
+            tag: self.tag,
+            attributes,
+            children,
+        }
+    }
+
+    fn html_len(&self) -> usize {
+        if E::SELF_CLOSING {
+            3 // < ... />
+        + E::TAG.len()
+        + self.attributes.html_len()
+        } else {
+            2 // < ... >
+        + E::TAG.len()
+        + self.attributes.html_len()
+        + self.children.html_len()
+        + 3 // </ ... >
+        + E::TAG.len()
+        }
+    }
+
+    fn to_html_with_buf(
+        self,
+        buf: &mut String,
+        position: &mut Position,
+        _escape: bool,
+        mark_branches: bool,
+    ) {
+        // opening tag
+        buf.push('<');
+        buf.push_str(self.tag.tag());
+
+        let inner_html = attributes_to_html(self.attributes, buf);
+
+        buf.push('>');
+
+        if !E::SELF_CLOSING {
+            if !inner_html.is_empty() {
+                buf.push_str(&inner_html);
+            } else if Ch::EXISTS {
+                // children
+                *position = Position::FirstChild;
+                self.children
+                    .to_html_with_buf(buf, position, E::ESCAPE_CHILDREN, mark_branches);
+            }
+
+            // closing tag
+            buf.push_str("</");
+            buf.push_str(self.tag.tag());
+            buf.push('>');
+        }
+        *position = Position::NextChild;
+    }
+
+    fn to_html_async_with_buf<const OUT_OF_ORDER: bool>(
+        self,
+        buffer: &mut StreamBuilder,
+        position: &mut Position,
+        _escape: bool,
+        mark_branches: bool,
+    ) where
+        Self: Sized,
+    {
+        let mut buf = String::with_capacity(Self::MIN_LENGTH);
+        // opening tag
+        buf.push('<');
+        buf.push_str(self.tag.tag());
+
+        let inner_html = attributes_to_html(self.attributes, &mut buf);
+
+        buf.push('>');
+        buffer.push_sync(&buf);
+
+        if !E::SELF_CLOSING {
+            // children
+            *position = Position::FirstChild;
+            if !inner_html.is_empty() {
+                buffer.push_sync(&inner_html);
+            } else if Ch::EXISTS {
+                self.children.to_html_async_with_buf::<OUT_OF_ORDER>(
+                    buffer,
+                    position,
+                    E::ESCAPE_CHILDREN,
+                    mark_branches,
+                );
+            }
+
+            // closing tag
+            let mut buf = String::with_capacity(3 + E::TAG.len());
+            buf.push_str("</");
+            buf.push_str(self.tag.tag());
+            buf.push('>');
+            buffer.push_sync(&buf);
+        }
+        *position = Position::NextChild;
+    }
+}
+
+/// Renders an [`Attribute`] (which can be one or more HTML attributes) into an HTML buffer.
+pub fn attributes_to_html<At>(attr: At, buf: &mut String) -> String
+where
+    At: Attribute,
+{
+    // `class` and `style` are created first, and pushed later
+    // this is because they can be filled by a mixture of values that include
+    // either the whole value (`class="..."` or `style="..."`) and individual
+    // classes and styles (`class:foo=true` or `style:height="40px"`), so they
+    // need to be filled during the whole attribute-creation process and then
+    // added
+
+    // String doesn't allocate until the first push, so this is cheap if there
+    // is no class or style on an element
+    let mut class = String::new();
+    let mut style = String::new();
+    let mut inner_html = String::new();
+
+    // inject regular attributes, and fill class and style
+    attr.to_html(buf, &mut class, &mut style, &mut inner_html);
+
+    if !class.is_empty() {
+        buf.push(' ');
+        buf.push_str("class=\"");
+        buf.push_str(&escape_attr(class.trim_start().trim_end()));
+        buf.push('"');
+    }
+    if !style.is_empty() {
+        buf.push(' ');
+        buf.push_str("style=\"");
+        buf.push_str(&escape_attr(style.trim_start().trim_end()));
+        buf.push('"');
+    }
+
+    inner_html
+}
 /// The retained view state for an HTML element.
 pub struct ElementState<At, Ch> {
     pub(crate) el: types::Element,
