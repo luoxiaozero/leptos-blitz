@@ -7,6 +7,8 @@ use std::{future::Future, sync::Arc};
 pub mod add_attr;
 /// View implementation for string types.
 pub mod strings;
+/// View implementations for tuples.
+pub mod tuples;
 
 /// The `Render` trait allows rendering something as part of the user interface.
 pub trait Render: Sized {
