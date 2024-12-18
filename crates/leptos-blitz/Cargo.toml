@@ -7,10 +7,14 @@ edition = "2021"
 futures-util = "0.3.30"
 
 # Leptos
-leptos = { version = "0.7.0", features = ["csr"] }
+# leptos = { version = "0.7.0", features = ["csr"] }
 any_spawner = { version = "0.2.0", features = ["tokio"] }
 next_tuple = "0.1.0"
 paste = "1.0"
+futures = "0.3.31"
+parking_lot = "0.12.3"
+html-escape = "0.2.13"
+reactive_graph = { version = "0.1.0", features = ["serde"] }
 
 # Blitz
 blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }

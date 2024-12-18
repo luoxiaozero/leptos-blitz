@@ -2,7 +2,7 @@
 pub mod prelude {
     pub use super::{
         renderer::dom::Dom,
-        view::{Mountable, Render},
+        view::{Mountable, Render, RenderHtml},
     };
 }
 
@@ -10,7 +10,7 @@ pub mod prelude {
 pub mod html;
 /// Defines various backends that can render views.
 pub mod renderer;
-
-pub use renderer::dom::Dom;
+/// Rendering views to HTML.
+pub mod ssr;
 /// Core logic for manipulating views.
 pub mod view;

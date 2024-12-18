@@ -3,10 +3,10 @@ mod elements;
 pub use elements::*;
 
 use crate::_tachys::{
-    renderer::{types, Rndr},
+    html::attribute::Attribute,
+    renderer::{types, CastFrom, Rndr},
     view::{IntoRender, Mountable, Render},
 };
-use leptos::{attr::Attribute, html::ElementType};
 use next_tuple::NextTuple;
 use std::ops::Deref;
 #[cfg(debug_assertions)]
@@ -77,6 +77,25 @@ where
     fn child(self, child: NewChild) -> Self::Output;
 }
 
+/// An HTML element.
+pub trait ElementType: Send {
+    /// The underlying native widget type that this represents.
+    type Output;
+
+    /// The element's tag.
+    const TAG: &'static str;
+    /// Whether the element is self-closing.
+    const SELF_CLOSING: bool;
+    /// Whether the element's children should be escaped. This should be `true` except for elements
+    /// like `<style>` and `<script>`, which include other languages that should not use HTML
+    /// entity escaping.
+    const ESCAPE_CHILDREN: bool;
+    /// The element's namespace, if it is not HTML.
+    const NAMESPACE: Option<&'static str>;
+
+    /// The element's tag.
+    fn tag(&self) -> &str;
+}
 pub(crate) trait ElementWithChildren {}
 
 impl<E, At, Ch> Render for HtmlElement<E, At, Ch>
@@ -133,17 +152,17 @@ impl<At, Ch> Deref for ElementState<At, Ch> {
 
 impl<At, Ch> Mountable for ElementState<At, Ch> {
     fn unmount(&mut self) {
-        Rndr::remove(self.el.as_ref());
+        Rndr::remove(&self.el);
     }
 
     fn mount(&mut self, parent: &types::Element, marker: Option<&types::Node>) {
-        Rndr::insert_node(parent, self.el.as_ref(), marker);
+        Rndr::insert_node(parent, &self.el, marker);
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable) -> bool {
-        if let Some(parent) = Rndr::get_parent(self.el.as_ref()) {
+        if let Some(parent) = Rndr::get_parent(&self.el) {
             if let Some(element) = types::Element::cast_from(parent) {
-                child.mount(&element, Some(self.el.as_ref()));
+                child.mount(&element, Some(&self.el));
                 return true;
             }
         }

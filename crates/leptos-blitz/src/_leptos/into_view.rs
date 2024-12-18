@@ -1,5 +1,4 @@
-use crate::_tachys::view::Render;
-use leptos::prelude::RenderHtml;
+use crate::_tachys::prelude::{Render, RenderHtml};
 use std::borrow::Cow;
 
 /// A wrapper for any kind of view.

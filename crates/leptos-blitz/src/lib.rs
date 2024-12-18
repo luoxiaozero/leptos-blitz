@@ -2,7 +2,7 @@ pub mod _leptos;
 mod _tachys;
 mod leptos_application;
 mod leptos_document;
-mod mutation_writer;
+mod web_document;
 
 use _leptos::IntoView;
 use leptos_application::LeptosNativeApplication;
@@ -10,9 +10,7 @@ pub use leptos_document::LeptosDocument;
 
 use blitz_dom::net::Resource;
 use blitz_net::Provider;
-use blitz_shell::{
-    create_default_event_loop, BlitzEvent, BlitzShellNetCallback, Config, WindowConfig,
-};
+use blitz_shell::{create_default_event_loop, BlitzEvent, BlitzShellNetCallback, WindowConfig};
 use blitz_traits::net::SharedCallback;
 
 use std::sync::Arc;

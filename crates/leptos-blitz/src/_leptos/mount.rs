@@ -1,8 +1,8 @@
 use super::IntoView;
 use crate::_tachys::renderer::dom::Element;
-use crate::_tachys::view::{Render, Mountable};
+use crate::_tachys::view::{Mountable, Render};
 use any_spawner::Executor;
-use leptos::prelude::{Owner};
+use reactive_graph::owner::Owner;
 
 pub fn mount_to<F, N>(parent: Element, f: F) -> (Owner, Box<dyn Mountable>)
 where

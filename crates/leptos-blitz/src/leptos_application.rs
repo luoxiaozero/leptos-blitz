@@ -1,7 +1,9 @@
 use crate::LeptosDocument;
 use blitz_shell::{BlitzApplication, BlitzEvent, WindowConfig};
 use winit::{
-    application::ApplicationHandler, event::StartCause, event_loop::{ActiveEventLoop, EventLoopProxy}
+    application::ApplicationHandler,
+    event::StartCause,
+    event_loop::{ActiveEventLoop, EventLoopProxy},
 };
 
 pub struct LeptosNativeApplication {
@@ -49,7 +51,7 @@ impl ApplicationHandler<BlitzEvent> for LeptosNativeApplication {
                 // if let Some(event) = event.downcast_ref::<DioxusNativeEvent>() {
                 //     self.handle_blitz_shell_event(event_loop, event);
                 // }
-            },
+            }
             event => self.inner.user_event(event_loop, event),
         }
     }

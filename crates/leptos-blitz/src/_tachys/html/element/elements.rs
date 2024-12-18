@@ -1,12 +1,8 @@
-//         attribute::{Attr, Attribute, AttributeValue},
-//         element::{ElementType, ElementWithChildren, HtmlElement},
-use leptos::tachys::html::{
-    attribute::{Attr, Attribute, AttributeValue},
-    element::ElementType,
-};
 use crate::_tachys::{
     html::{
-        element::{HtmlElement, ElementWithChildren},
+    attribute::{Attr, Attribute, AttributeValue},
+
+        element::{ElementWithChildren, HtmlElement},
     },
     view::Render,
 };
@@ -53,13 +49,13 @@ macro_rules! html_element_inner {
                     #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
                     pub fn $attr<V>(self, value: V) -> HtmlElement <
                         $struct_name,
-                        <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V>>,
+                        <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>,
                         Ch
                     >
                     where
                         V: AttributeValue,
                         At: NextTuple,
-                        <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
+                        <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
                     {
                         let HtmlElement {
                             #[cfg(debug_assertions)]
@@ -73,7 +69,7 @@ macro_rules! html_element_inner {
                             defined_at,
                             tag,
                             children,
-                            attributes: attributes.next_tuple(leptos::tachys::html::attribute::$attr(value)),
+                            attributes: attributes.next_tuple(leptos_blitz::_leptos::tachys::html::attribute::$attr(value)),
                         }
                     }
                 )*
@@ -158,13 +154,13 @@ macro_rules! html_self_closing_elements {
                         #[doc = concat!("The [`", stringify!($attr), "`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/", stringify!($tag), "#", stringify!($attr) ,") attribute on `<", stringify!($tag), ">`.")]
                         pub fn $attr<V>(self, value: V) -> HtmlElement<
                             [<$tag:camel>],
-                            <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V>>,
+                            <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>,
                             (),
                         >
                         where
                             V: AttributeValue,
                             At: NextTuple,
-                            <At as NextTuple>::Output<Attr<leptos::tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
+                            <At as NextTuple>::Output<Attr<leptos_blitz::_leptos::tachys::html::attribute::[<$attr:camel>], V>>: Attribute,
                         {
                             let HtmlElement {
                                  #[cfg(debug_assertions)]
@@ -178,7 +174,7 @@ macro_rules! html_self_closing_elements {
                                 defined_at,
                                 tag,
                                 children,
-                                attributes: attributes.next_tuple(leptos::tachys::html::attribute::$attr(value)),
+                                attributes: attributes.next_tuple(leptos_blitz::_leptos::tachys::html::attribute::$attr(value)),
                             }
                         }
                     )*

@@ -1,12 +1,11 @@
-use crate::_leptos::{mount_to, prelude::Mountable, IntoView};
+use crate::_leptos::{mount_to, prelude::{Mountable, Owner}, IntoView};
+use crate::web_document::WebDocument;
 use blitz_dom::{
     namespace_url, net::Resource, ns, Atom, ColorScheme, Document, DocumentLike, ElementNodeData,
     NodeData, QualName, Viewport, DEFAULT_CSS,
 };
 use blitz_traits::net::NetProvider;
 use futures_util::FutureExt;
-use leptos::prelude::Owner;
-use std::cell::RefCell;
 use std::sync::Arc;
 use tokio::task::LocalSet;
 
@@ -16,10 +15,6 @@ pub(crate) fn qual_name(local_name: &str, namespace: Option<&str>) -> QualName {
         ns: namespace.map(Atom::from).unwrap_or(ns!(html)),
         local: Atom::from(local_name),
     }
-}
-
-thread_local! {
-    static DOCUMENT: RefCell<Option<Document>> = RefCell::new(None);
 }
 
 pub struct LeptosDocument {
@@ -32,18 +27,18 @@ pub struct LeptosDocument {
 
 impl AsRef<Document> for LeptosDocument {
     fn as_ref(&self) -> &Document {
-        LeptosDocument::document()
+        WebDocument::document()
     }
 }
 impl AsMut<Document> for LeptosDocument {
     fn as_mut(&mut self) -> &mut Document {
-        LeptosDocument::document_mut()
+        WebDocument::document_mut()
     }
 }
 
 impl From<LeptosDocument> for Document {
-    fn from(doc: LeptosDocument) -> Document {
-        LeptosDocument::document_take()
+    fn from(_doc: LeptosDocument) -> Document {
+        WebDocument::document_take()
     }
 }
 
@@ -114,9 +109,7 @@ impl LeptosDocument {
 
         let root_element = doc.root_element().id;
 
-        DOCUMENT.with(|document| {
-            *document.borrow_mut() = Some(doc);
-        });
+        WebDocument::set_document(doc);
 
         let local_set = LocalSet::new();
         let (owner, mountable) = local_set.block_on(rt, async { mount_to(root_element.into(), f) });
@@ -127,44 +120,9 @@ impl LeptosDocument {
             mountable,
         }
     }
-}
-
-impl LeptosDocument {
-    pub fn document() -> &'static Document {
-        DOCUMENT.with(|doc| {
-            let borrowed_doc = doc.borrow();
-            if let Some(ref document) = *borrowed_doc {
-                unsafe { std::mem::transmute::<&Document, &'static Document>(document) }
-            } else {
-                panic!("Document is None");
-            }
-        })
-    }
-
-    pub fn document_mut() -> &'static mut Document {
-        DOCUMENT.with(|doc| {
-            let mut borrowed_doc = doc.borrow_mut();
-            if let Some(ref mut document) = *borrowed_doc {
-                unsafe { std::mem::transmute::<&mut Document, &'static mut Document>(document) }
-            } else {
-                panic!("Document is None");
-            }
-        })
-    }
-
-    pub fn document_take() -> Document {
-        DOCUMENT.with(|doc| {
-            let mut borrowed_doc = doc.borrow_mut();
-            if let Some(document) = borrowed_doc.take() {
-                document
-            } else {
-                panic!("Document is None");
-            }
-        })
-    }
 
     fn inner(&self) -> &'static Document {
-        Self::document()
+        WebDocument::document()
     }
 }
 
