@@ -1,11 +1,11 @@
-use leptos_blitz::_leptos::{
+use leptos_blitz::{
     ev,
     html::{div, span},
     prelude::*,
 };
 
 fn main() {
-    leptos_blitz::launch(move || {
+    launch(move || {
         let count = RwSignal::new(0);
         div()
             .style("color: red")

@@ -1,11 +1,7 @@
-use crate::web_document::WebDocument;
+use super::web_document::{self, WebDocument};
 use crate::{
-    _leptos::{
-        mount_to,
-        prelude::{Mountable, Owner},
-        IntoView,
-    },
-    web_document,
+    _leptos::{into_view::IntoView, mount::mount_to},
+    _tachys::prelude::Mountable,
 };
 use blitz_dom::{
     events::EventData, namespace_url, net::Resource, ns, Atom, ColorScheme, Document, DocumentLike,
@@ -13,6 +9,7 @@ use blitz_dom::{
 };
 use blitz_traits::net::NetProvider;
 use futures_util::FutureExt;
+use reactive_graph::owner::Owner;
 use std::sync::Arc;
 use tokio::task::LocalSet;
 

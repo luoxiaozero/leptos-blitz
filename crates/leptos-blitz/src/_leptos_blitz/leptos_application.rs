@@ -1,4 +1,4 @@
-use crate::LeptosDocument;
+use super::LeptosDocument;
 use blitz_shell::{BlitzApplication, BlitzEvent, WindowConfig};
 use winit::{
     application::ApplicationHandler,

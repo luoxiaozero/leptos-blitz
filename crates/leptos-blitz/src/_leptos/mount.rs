@@ -1,4 +1,4 @@
-use super::IntoView;
+use super::into_view::IntoView;
 use crate::_tachys::renderer::dom::Element;
 use crate::_tachys::view::{Mountable, Render};
 use any_spawner::Executor;

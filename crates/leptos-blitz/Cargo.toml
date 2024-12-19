@@ -8,6 +8,7 @@ futures-util = "0.3.30"
 
 # Leptos
 # leptos = { version = "0.7.0", features = ["csr"] }
+leptos_blitz_macro = { workspace = true }
 any_spawner = { version = "0.2.0", features = ["tokio"] }
 next_tuple = "0.1.0"
 paste = "1.0"

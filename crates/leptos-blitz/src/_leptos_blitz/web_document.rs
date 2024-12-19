@@ -1,4 +1,4 @@
-use crate::leptos_document::qual_name;
+use super::leptos_document::qual_name;
 use blitz_dom::{
     local_name, namespace_url,
     node::{Attribute, NodeSpecificData},

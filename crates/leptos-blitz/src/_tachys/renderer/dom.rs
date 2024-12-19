@@ -1,6 +1,6 @@
 use super::CastFrom;
+use crate::_leptos_blitz::web_document::{self, WebDocument};
 use crate::_tachys::view::Mountable;
-use crate::web_document::{self, WebDocument};
 use blitz_dom::NodeData;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

@@ -1,48 +1,24 @@
-pub mod _leptos;
-pub mod _tachys;
-mod leptos_application;
-mod leptos_document;
-mod web_document;
+mod _leptos;
+mod _leptos_blitz;
+mod _tachys;
 
-use _leptos::IntoView;
-use leptos_application::LeptosNativeApplication;
-pub use leptos_document::LeptosDocument;
+/// Exports all the core types of the library.
+pub mod prelude {
+    pub use super::_tachys::prelude::*;
+    pub use reactive_graph::prelude::*;
 
-use blitz_dom::net::Resource;
-use blitz_net::Provider;
-use blitz_shell::{create_default_event_loop, BlitzEvent, BlitzShellNetCallback, WindowConfig};
-use blitz_traits::net::SharedCallback;
-
-use std::sync::Arc;
-
-// blitz launch_cfg_with_props
-pub fn launch<F, N>(f: F)
-where
-    F: FnOnce() -> N + 'static,
-    N: IntoView + 'static,
-{
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-    let _guard = rt.enter();
-
-    let event_loop = create_default_event_loop::<BlitzEvent>();
-    let proxy = event_loop.create_proxy();
-
-    let net_callback = Arc::new(BlitzShellNetCallback::new(proxy));
-    let net_provider = Arc::new(Provider::new(
-        rt.handle().clone(),
-        Arc::clone(&net_callback) as SharedCallback<Resource>,
-    ));
-
-    let doc = LeptosDocument::new(&rt, f, Some(net_provider));
-    let window = WindowConfig::new(doc);
-
-    // // Create application
-    let mut application = LeptosNativeApplication::new(rt, event_loop.create_proxy());
-    application.add_window(window);
-
-    // // Run event loop
-    event_loop.run_app(&mut application).unwrap();
+    pub use super::_leptos::into_view::*;
+    pub use super::_leptos_blitz::launch;
+    pub use reactive_graph::{
+        actions::*, computed::*, effect::*, graph::untrack, owner::*, signal::*, wrappers::read::*,
+    };
 }
+
+pub use leptos_blitz_macro::*;
+// pub use crate::_tachys as tachys;
+pub use reactive_graph as reactive;
+
+/// HTML element types.
+pub use _tachys::html::element as html;
+/// HTML event types.
+pub use _tachys::html::event as ev;
