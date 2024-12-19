@@ -77,6 +77,9 @@ impl Dom {
         let doc = WebDocument::document();
         let node = doc.get_node(node.node_id());
         println!("{:#?}", node);
+        if let Some(node) = node {
+            println!("{:#?}", node.outer_html());
+        }
     }
 
     pub fn clear_children(parent: &Element) {
@@ -90,19 +93,62 @@ impl Dom {
 
     // pub fn clone_template(tpl: &TemplateElement) -> Element {
     //     todo!()
-        // tpl.content()
-        //     .clone_node_with_deep(true)
-        //     .unwrap()
-        //     .unchecked_into()
+    // tpl.content()
+    //     .clone_node_with_deep(true)
+    //     .unwrap()
+    //     .unchecked_into()
     // }
 
     pub fn create_element_from_html(html: &str) -> Element {
-        Self::create_element("template", None)
-        // TODO can be optimized to cache HTML strings or cache <template>?
-        // let tpl = document().create_element("template").unwrap();
-        // tpl.set_inner_html(html);
-        // let tpl = Self::clone_template(tpl.unchecked_ref());
-        // tpl.first_element_child().unwrap_or(tpl)
+        use html5ever::parse_document;
+        use markup5ever::tendril::TendrilSink;
+        use markup5ever_rcdom::{Handle, NodeData, RcDom};
+
+        let tpl = Self::create_element("div", None);
+
+        let dom: RcDom = parse_document(RcDom::default(), Default::default())
+            .from_utf8()
+            .read_from(&mut html.as_bytes())
+            .unwrap();
+
+        fn traverse_dom(parent: &Element, handle: &Handle) {
+            for child in handle.children.borrow().iter() {
+                match &child.data {
+                    NodeData::Text { contents } => {
+                        let node = WebDocument::create_text_node(&contents.borrow());
+                        parent.insert_before(&node, None);
+                    }
+                    NodeData::Comment { contents: _ } => {
+                        let node = WebDocument::create_comment();
+                        parent.insert_before(&node, None);
+                    }
+                    NodeData::Element {
+                        name,
+                        attrs,
+                        template_contents: _,
+                        mathml_annotation_xml_integration_point: _,
+                    } => {
+                        let name: &str = &name.local;
+                        let node = if ["html", "head", "body"].contains(&name) {
+                            parent.clone()
+                        } else {
+                            let node = WebDocument::create_element_ns(None, name);
+                            for attr in attrs.borrow().iter() {
+                                node.set_attribute(&attr.name.local, &attr.value);
+                            }
+                            parent.insert_before(&node, None);
+                            node
+                        };
+
+                        traverse_dom(&node, child);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        traverse_dom(&tpl, &dom.document);
+        // Self::log_node(&tpl);
+        tpl
     }
 }
 

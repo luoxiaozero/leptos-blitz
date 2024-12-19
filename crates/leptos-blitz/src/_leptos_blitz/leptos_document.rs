@@ -2,6 +2,7 @@ use super::web_document::{self, WebDocument};
 use crate::{
     _leptos::{into_view::IntoView, mount::mount_to},
     _tachys::prelude::Mountable,
+    ev::Event,
 };
 use blitz_dom::{
     events::EventData, namespace_url, net::Resource, ns, Atom, ColorScheme, Document, DocumentLike,
@@ -78,12 +79,15 @@ impl DocumentLike for LeptosDocument {
             EventData::Click { x, y, mods } => {
                 let doc = WebDocument::document();
                 for el in chain.iter().rev() {
-                    // let node = doc.get_node(el.node_id()).unwrap().attr(LocalName);
-                    // if node.attr.name.local.as_ref() == "onclick" {
-                    //     if let Ok(key) = attr.value.parse::<u64>() {
-                    //         Event::call_mut(key);
-                    //     }
-                    // }
+                    if let Some(value) = doc
+                        .get_node(el.node_id())
+                        .unwrap()
+                        .attr(markup5ever::LocalName::from("onclick"))
+                    {
+                        if let Ok(key) = value.parse::<u64>() {
+                            Event::call_mut(key);
+                        }
+                    }
                 }
             }
             EventData::KeyPress { event, mods } => todo!(),

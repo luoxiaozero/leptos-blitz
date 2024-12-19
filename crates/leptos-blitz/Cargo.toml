@@ -25,12 +25,18 @@ blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
 blitz-net = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
 blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
 blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
 
 # Windowing & Input
 winit = { version = "0.30.2", features = ["rwh_06"] }
 
 # IO & Networking
 tokio = { version = "1.25.0", features = ["full"] }
+
+# Servo dependencies
+markup5ever = "0.14"
+html5ever = "0.29"
+markup5ever_rcdom = "0.5.0-unofficial"
 
 [features]
 nightly = []
