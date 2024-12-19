@@ -15,7 +15,7 @@ paste = "1.0"
 futures = "0.3.31"
 parking_lot = "0.12.3"
 html-escape = "0.2.13"
-reactive_graph = { version = "0.1.0", features = ["serde"] }
+reactive_graph = { version = "0.1.0", features = ["serde", "effects"] }
 const_str_slice_concat = "0.1.0"
 slotmap = "1.0.7"
 send_wrapper = "0.6.0"
@@ -43,4 +43,7 @@ nightly = []
 tracing = []
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(leptos_debuginfo)', 'cfg(erase_components)'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(leptos_debuginfo)',
+    'cfg(erase_components)',
+] }
