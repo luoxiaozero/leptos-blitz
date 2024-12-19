@@ -4,8 +4,7 @@ resolver = "2"
 
 [workspace.dependencies]
 leptos_blitz_macro = { path = "./crates/leptos_blitz_macro" }
-
-# leptos_hot_reload = { git = "https://github.com/leptos-rs/leptos", rev = "41f8a97d33c011ca9acf6bbf4d35911f668b32f0" }
+leptos_hot_reload = "0.7.1"
 
 # [package]
 # name = "leptos-blitz-examples"

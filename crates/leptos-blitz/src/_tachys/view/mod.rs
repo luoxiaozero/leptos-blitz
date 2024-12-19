@@ -5,6 +5,7 @@ use std::{future::Future, sync::Arc};
 
 /// Add attributes to typed views.
 pub mod add_attr;
+mod primitives;
 /// View implementation for string types.
 pub mod strings;
 /// View implementations for tuples.

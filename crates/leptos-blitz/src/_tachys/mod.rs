@@ -3,7 +3,7 @@ pub mod prelude {
     pub use super::{
         html::element::ElementChild,
         renderer::dom::Dom,
-        view::{Mountable, Render, RenderHtml},
+        view::{add_attr::AddAnyAttr, IntoRender, Mountable, Render, RenderHtml},
     };
 }
 
@@ -15,3 +15,5 @@ pub mod renderer;
 pub mod ssr;
 /// Core logic for manipulating views.
 pub mod view;
+
+pub mod reactive_graph;

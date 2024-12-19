@@ -9,13 +9,16 @@ pub mod prelude {
 
     pub use super::_leptos::into_view::*;
     pub use super::_leptos_blitz::launch;
+    pub use leptos_blitz_macro::*;
     pub use reactive_graph::{
         actions::*, computed::*, effect::*, graph::untrack, owner::*, signal::*, wrappers::read::*,
     };
 }
 
 pub use leptos_blitz_macro::*;
-// pub use crate::_tachys as tachys;
+pub mod tachys {
+    pub use super::_tachys::*;
+}
 pub use reactive_graph as reactive;
 
 /// HTML element types.

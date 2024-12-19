@@ -31,3 +31,10 @@ winit = { version = "0.30.2", features = ["rwh_06"] }
 
 # IO & Networking
 tokio = { version = "1.25.0", features = ["full"] }
+
+[features]
+nightly = []
+tracing = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(leptos_debuginfo)', 'cfg(erase_components)'] }

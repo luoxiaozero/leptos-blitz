@@ -87,6 +87,23 @@ impl Dom {
             doc.remove_node(child);
         }
     }
+
+    // pub fn clone_template(tpl: &TemplateElement) -> Element {
+    //     todo!()
+        // tpl.content()
+        //     .clone_node_with_deep(true)
+        //     .unwrap()
+        //     .unchecked_into()
+    // }
+
+    pub fn create_element_from_html(html: &str) -> Element {
+        Self::create_element("template", None)
+        // TODO can be optimized to cache HTML strings or cache <template>?
+        // let tpl = document().create_element("template").unwrap();
+        // tpl.set_inner_html(html);
+        // let tpl = Self::clone_template(tpl.unchecked_ref());
+        // tpl.first_element_child().unwrap_or(tpl)
+    }
 }
 
 impl Mountable for Node {

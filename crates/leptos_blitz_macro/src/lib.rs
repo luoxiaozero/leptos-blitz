@@ -911,21 +911,21 @@ pub fn slot(args: proc_macro::TokenStream, s: TokenStream) -> TokenStream {
 ///   server function. If you choose to specify a path in the fourth argument, you must ensure that these
 ///   are unique. You cannot define two server functions with the same URL prefix and endpoint path,
 ///   even if they have different URL encodings, e.g. a POST method at `/api/foo` and a GET method at `/api/foo`.
-#[proc_macro_attribute]
-#[proc_macro_error]
-pub fn server(args: proc_macro::TokenStream, s: TokenStream) -> TokenStream {
-    match server_fn_macro::server_macro_impl(
-        args.into(),
-        s.into(),
-        Some(syn::parse_quote!(::leptos::server_fn)),
-        "/api",
-        None,
-        None,
-    ) {
-        Err(e) => e.to_compile_error().into(),
-        Ok(s) => s.to_token_stream().into(),
-    }
-}
+// #[proc_macro_attribute]
+// #[proc_macro_error]
+// pub fn server(args: proc_macro::TokenStream, s: TokenStream) -> TokenStream {
+//     match server_fn_macro::server_macro_impl(
+//         args.into(),
+//         s.into(),
+//         Some(syn::parse_quote!(::leptos::server_fn)),
+//         "/api",
+//         None,
+//         None,
+//     ) {
+//         Err(e) => e.to_compile_error().into(),
+//         Ok(s) => s.to_token_stream().into(),
+//     }
+// }
 
 /// Derives a trait that parses a map of string keys and values into a typed
 /// data structure, e.g., for route params.

@@ -88,14 +88,14 @@ pub fn render_view(
             view
         } else if let Some(vm) = view_marker {
             quote! {
-                ::leptos::prelude::View::new(
+                ::leptos_blitz::prelude::View::new(
                     #view
                 )
                 .with_view_marker(#vm)
             }
         } else {
             quote! {
-                ::leptos::prelude::View::new(
+                ::leptos_blitz::prelude::View::new(
                     #view
                 )
             }
@@ -392,7 +392,7 @@ fn inert_element_to_tokens(
     html.finish();
 
     Some(quote! {
-        ::leptos::tachys::html::InertElement::new(#html)
+        ::leptos_blitz::tachys::html::InertElement::new(#html)
     })
 }
 
@@ -564,7 +564,7 @@ fn node_to_tokens(
             disable_inert_html,
         ),
         Node::Block(block) => {
-            Some(quote! { ::leptos::prelude::IntoRender::into_render(#block) })
+            Some(quote! { ::leptos_blitz::prelude::IntoRender::into_render(#block) })
         }
         Node::Text(text) => Some(text_to_tokens(&text.value)),
         Node::RawText(raw) => {
@@ -786,11 +786,11 @@ pub(crate) fn element_to_tokens(
                     /* proc_macro_error2::emit_warning!(name.span(), "The view macro is assuming this is an HTML element, \
                     but it is ambiguous; if it is an SVG or MathML element, prefix with svg:: or math::"); */
                     quote_spanned! { node.name().span() =>
-                        ::leptos::tachys::html::element::#name()
+                        ::leptos_blitz::tachys::html::element::#name()
                     }
                 }
                 TagType::Html => {
-                    quote_spanned! { node.name().span() => ::leptos::tachys::html::element::#name() }
+                    quote_spanned! { node.name().span() => ::leptos_blitz::tachys::html::element::#name() }
                 }
                 TagType::Svg => {
                     quote_spanned! { node.name().span() => ::leptos::tachys::svg::#name() }
@@ -801,7 +801,7 @@ pub(crate) fn element_to_tokens(
             }
         } else {
             parent_type = TagType::Html;
-            quote_spanned! { name.span() => ::leptos::tachys::html::element::#name() }
+            quote_spanned! { name.span() => ::leptos_blitz::tachys::html::element::#name() }
         };
 
         /* TODO restore this
@@ -1121,7 +1121,7 @@ pub(crate) fn attribute_absolute(
             let name = &node.key.to_string();
             if name == "class" || name == "style" {
                 quote! {
-                    ::leptos::tachys::html::#key::#key(#value)
+                    ::leptos_blitz::tachys::html::#key::#key(#value)
                 }
             }
             else if name.contains('-') && !name.starts_with("aria-") {
@@ -1213,7 +1213,7 @@ pub(crate) fn event_type_and_handler(
         };
         quote! { ::leptos::tachys::html::event::#undelegated(::leptos::tachys::html::event::#event_type) }
     } else {
-        quote! { ::leptos::tachys::html::event::#event_type }
+        quote! { ::leptos_blitz::tachys::html::event::#event_type }
     };
 
     (on, event_type, handler)
