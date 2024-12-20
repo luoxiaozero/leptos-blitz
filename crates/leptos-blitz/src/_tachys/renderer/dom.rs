@@ -1,15 +1,18 @@
 use super::CastFrom;
-use crate::_leptos_blitz::web_document::{self, WebDocument};
 use crate::_tachys::view::Mountable;
-use blitz_dom::NodeData;
+use blitz_web_api::dom::{self, window, BlitzDocument};
+
+fn document() -> dom::Document {
+    window().document().clone()
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Dom;
 
-pub type Node = web_document::Node;
-pub type Text = web_document::Text;
-pub type Element = web_document::Element;
-pub type Placeholder = web_document::Comment;
+pub type Node = dom::Node;
+pub type Text = dom::Text;
+pub type Element = dom::Element;
+pub type Placeholder = dom::Comment;
 // pub type Event = wasm_bindgen::JsValue;
 // pub type ClassList = web_document::DomTokenList;
 // pub type CssStyleDeclaration = web_document::CssStyleDeclaration;
@@ -21,15 +24,15 @@ impl Dom {
     }
 
     pub fn create_element(tag: &str, namespace: Option<&str>) -> Element {
-        WebDocument::create_element_ns(namespace, tag)
+        document().create_element_ns(namespace, tag)
     }
 
     pub fn create_text_node(text: &str) -> Text {
-        WebDocument::create_text_node(text)
+        document().create_text_node(text)
     }
 
     pub fn create_placeholder() -> Placeholder {
-        WebDocument::create_comment()
+        document().create_comment("")
     }
 
     pub fn set_text(node: &Text, text: &str) {
@@ -57,7 +60,7 @@ impl Dom {
     }
 
     pub fn remove_self(node: &Node) {
-        let doc = WebDocument::document_mut();
+        let doc = BlitzDocument::document_mut();
         doc.remove_node(node.node_id());
     }
 
@@ -74,7 +77,7 @@ impl Dom {
     }
 
     pub fn log_node(node: &Node) {
-        let doc = WebDocument::document();
+        let doc = BlitzDocument::document();
         let node = doc.get_node(node.node_id());
         println!("{:#?}", node);
         if let Some(node) = node {
@@ -83,7 +86,7 @@ impl Dom {
     }
 
     pub fn clear_children(parent: &Element) {
-        let doc = WebDocument::document_mut();
+        let doc = BlitzDocument::document_mut();
         let parent = doc.get_node_mut(parent.node_id()).unwrap();
         let children = parent.children.clone();
         for child in children.into_iter() {
@@ -115,11 +118,11 @@ impl Dom {
             for child in handle.children.borrow().iter() {
                 match &child.data {
                     NodeData::Text { contents } => {
-                        let node = WebDocument::create_text_node(&contents.borrow());
+                        let node = document().create_text_node(&contents.borrow());
                         parent.insert_before(&node, None);
                     }
                     NodeData::Comment { contents: _ } => {
-                        let node = WebDocument::create_comment();
+                        let node = document().create_comment("");
                         parent.insert_before(&node, None);
                     }
                     NodeData::Element {
@@ -132,7 +135,7 @@ impl Dom {
                         let node = if ["html", "head", "body"].contains(&name) {
                             parent.clone()
                         } else {
-                            let node = WebDocument::create_element_ns(None, name);
+                            let node = document().create_element_ns(None, name);
                             for attr in attrs.borrow().iter() {
                                 node.set_attribute(&attr.name.local, &attr.value);
                             }
@@ -191,16 +194,12 @@ impl Mountable for Text {
 }
 
 impl CastFrom<Node> for Text {
-    fn cast_from(source: Node) -> Option<Self> {
-        let doc = WebDocument::document();
-        let node_id = source.node_id();
-        let node = doc.get_node(node_id).unwrap();
-
-        node.is_text_node().then_some(Text::from(node_id))
+    fn cast_from(node: Node) -> Option<Self> {
+        node.try_into().ok()
     }
 }
 
-impl Mountable for web_document::Comment {
+impl Mountable for dom::Comment {
     fn unmount(&mut self) {
         Dom::remove_self(self);
     }
@@ -219,17 +218,9 @@ impl Mountable for web_document::Comment {
     }
 }
 
-impl CastFrom<Node> for web_document::Comment {
-    fn cast_from(source: Node) -> Option<Self> {
-        let doc = WebDocument::document();
-        let node_id = source.node_id();
-        let node = doc.get_node(node_id).unwrap();
-
-        if matches!(node.raw_dom_data, NodeData::Comment) {
-            Some(Self::from(node_id))
-        } else {
-            None
-        }
+impl CastFrom<Node> for dom::Comment {
+    fn cast_from(node: Node) -> Option<Self> {
+        node.try_into().ok()
     }
 }
 
@@ -254,9 +245,6 @@ impl Mountable for Element {
 
 impl CastFrom<Node> for Element {
     fn cast_from(node: Node) -> Option<Element> {
-        let doc = WebDocument::document();
-        let node_id = node.node_id();
-        let node = doc.get_node(node_id).unwrap();
-        node.is_element().then_some(Element::from(node_id))
+        node.try_into().ok()
     }
 }

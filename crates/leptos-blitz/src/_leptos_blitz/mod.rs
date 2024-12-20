@@ -1,6 +1,5 @@
 mod leptos_application;
 mod leptos_document;
-pub mod web_document;
 
 use crate::_leptos::into_view::IntoView;
 use blitz_dom::net::Resource;

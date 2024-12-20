@@ -1,4 +1,4 @@
-use super::{blitz_document, blitz_document_mut};
+use super::blitz_document::BlitzDocument;
 use blitz_dom::{local_name, NodeData};
 
 pub(super) type NodeId = usize;
@@ -7,7 +7,7 @@ pub(super) type NodeId = usize;
 pub struct Node(NodeId);
 
 impl Node {
-    pub(super) fn node_id(&self) -> NodeId {
+    pub fn node_id(&self) -> NodeId {
         self.0.clone()
     }
 
@@ -32,7 +32,7 @@ impl Node {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Node/parentNode)"]
     pub fn parent_node(&self) -> Option<Node> {
-        let node = blitz_document().get_node(self.node_id())?;
+        let node = BlitzDocument::document().get_node(self.node_id())?;
         node.parent.map(|parent| Node(parent))
     }
 
@@ -40,7 +40,7 @@ impl Node {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Node/firstChild)"]
     pub fn first_child(&self) -> Option<Node> {
-        let node = blitz_document().get_node(self.node_id())?;
+        let node = BlitzDocument::document().get_node(self.node_id())?;
         node.children.first().map(|child| Node(child.clone()))
     }
 
@@ -48,7 +48,7 @@ impl Node {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Node/nextSibling)"]
     pub fn next_sibling(&self) -> Option<Node> {
-        let doc = blitz_document();
+        let doc = BlitzDocument::document();
         let node = doc.get_node(self.node_id()).unwrap();
         let parent = doc.get_node(node.parent.unwrap()).unwrap();
 
@@ -69,7 +69,7 @@ impl Node {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Node/insertBefore)"]
     pub fn insert_before(&self, new_node: &Node, reference_node: Option<&Node>) {
-        let doc = blitz_document_mut();
+        let doc = BlitzDocument::document_mut();
         if let Some(reference_node) = reference_node {
             // TODO Verify that reference_node's parent is self
             doc.insert_before(reference_node.node_id(), &[new_node.node_id()]);
@@ -88,7 +88,7 @@ impl Node {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Node/removeChild)"]
     pub fn remove_child(&self, child: &Node) -> Option<Node> {
-        blitz_document_mut().remove_node(child.node_id());
+        BlitzDocument::document_mut().remove_node(child.node_id());
         Some(child.clone())
     }
 
@@ -96,7 +96,7 @@ impl Node {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent)"]
     pub fn set_text_content(&self, value: &str) {
-        let doc = blitz_document_mut();
+        let doc = BlitzDocument::document_mut();
         let node = doc.get_node_mut(self.node_id()).unwrap();
 
         let text = match node.raw_dom_data {

@@ -1,12 +1,11 @@
 use self::attribute::Attribute;
-use crate::no_attrs;
 use crate::tachys::{
     prelude::{AddAnyAttr, Mountable},
     renderer::{
         dom::{Element, Node},
-        CastFrom, Rndr,
+        Rndr,
     },
-    view::{Position, PositionState, Render, RenderHtml},
+    view::{Position, Render, RenderHtml},
 };
 use std::borrow::Cow;
 

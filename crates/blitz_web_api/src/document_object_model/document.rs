@@ -1,11 +1,11 @@
 use super::{
-    blitz_document_mut,
+    blitz_document::BlitzDocument,
     comment::Comment,
     element::Element,
     node::{Node, NodeId},
     text::Text,
 };
-use blitz_dom::{ns, Atom, ElementNodeData, NodeData, QualName};
+use blitz_dom::{namespace_url, ns, Atom, ElementNodeData, NodeData, QualName};
 
 pub(super) fn qual_name(local_name: &str, namespace: Option<&str>) -> QualName {
     QualName {
@@ -23,7 +23,7 @@ impl Document {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Document/createComment)"]
     pub fn create_comment(&self, _data: &str) -> Comment {
-        let id = blitz_document_mut().create_node(NodeData::Comment);
+        let id = BlitzDocument::document_mut().create_node(NodeData::Comment);
         Comment::from(id)
     }
 
@@ -32,7 +32,7 @@ impl Document {
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Document/createElementNS)"]
     pub fn create_element_ns(&self, namespace_url: Option<&str>, qualified_name: &str) -> Element {
         let data = ElementNodeData::new(qual_name(qualified_name, namespace_url), vec![]);
-        let id = blitz_document_mut().create_node(NodeData::Element(data));
+        let id = BlitzDocument::document_mut().create_node(NodeData::Element(data));
         Element::from(id)
     }
 
@@ -40,7 +40,7 @@ impl Document {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Document/createTextNode)"]
     pub fn create_text_node(&self, data: &str) -> Text {
-        let id = blitz_document_mut().create_text_node(data);
+        let id = BlitzDocument::document_mut().create_text_node(data);
         Text::from(id)
     }
 }

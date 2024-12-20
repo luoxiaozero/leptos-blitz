@@ -7,3 +7,4 @@ edition = "2021"
 [dependencies]
 web-sys = "0.3.76"
 blitz-dom = { workspace = true }
+thiserror = "2.0.8"

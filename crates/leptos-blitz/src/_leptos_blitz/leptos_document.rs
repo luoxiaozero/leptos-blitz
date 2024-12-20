@@ -1,4 +1,3 @@
-use super::web_document::{self, WebDocument};
 use crate::{
     _leptos::{into_view::IntoView, mount::mount_to},
     _tachys::prelude::Mountable,
@@ -9,6 +8,7 @@ use blitz_dom::{
     ElementNodeData, NodeData, QualName, Viewport, DEFAULT_CSS,
 };
 use blitz_traits::net::NetProvider;
+use blitz_web_api::dom::{self, BlitzDocument};
 use futures_util::FutureExt;
 use reactive_graph::owner::Owner;
 use std::sync::Arc;
@@ -32,18 +32,18 @@ pub struct LeptosDocument {
 
 impl AsRef<Document> for LeptosDocument {
     fn as_ref(&self) -> &Document {
-        WebDocument::document()
+        BlitzDocument::document()
     }
 }
 impl AsMut<Document> for LeptosDocument {
     fn as_mut(&mut self) -> &mut Document {
-        WebDocument::document_mut()
+        BlitzDocument::document_mut()
     }
 }
 
 impl From<LeptosDocument> for Document {
     fn from(_doc: LeptosDocument) -> Document {
-        WebDocument::document_take()
+        BlitzDocument::document_take()
     }
 }
 
@@ -69,7 +69,7 @@ impl DocumentLike for LeptosDocument {
             let node = &self.inner().tree()[node_id];
 
             if let Some(_element) = node.element_data() {
-                chain.push(web_document::Element::from(node_id))
+                chain.push(dom::Element::from(node_id))
             }
 
             next_node_id = node.parent;
@@ -77,7 +77,7 @@ impl DocumentLike for LeptosDocument {
 
         match event.data {
             EventData::Click { x, y, mods } => {
-                let doc = WebDocument::document();
+                let doc = BlitzDocument::document();
                 for el in chain.iter().rev() {
                     if let Some(value) = doc
                         .get_node(el.node_id())
@@ -132,7 +132,7 @@ impl LeptosDocument {
 
         let root_element = doc.root_element().id;
 
-        WebDocument::set_document(doc);
+        BlitzDocument::set_document(doc);
 
         let local_set = LocalSet::new();
         let (owner, mountable) = local_set.block_on(rt, async { mount_to(root_element.into(), f) });
@@ -145,7 +145,7 @@ impl LeptosDocument {
     }
 
     fn inner(&self) -> &'static Document {
-        WebDocument::document()
+        BlitzDocument::document()
     }
 }
 

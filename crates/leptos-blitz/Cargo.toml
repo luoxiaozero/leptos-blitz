@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 futures-util = "0.3.30"
+blitz_web_api = { workspace = true }
 
 # Leptos
 # leptos = { version = "0.7.0", features = ["csr"] }

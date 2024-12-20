@@ -1,20 +1,22 @@
 use super::{
-    blitz_document, blitz_document_mut,
+    blitz_document::BlitzDocument,
     document::qual_name,
     node::{Node, NodeId},
+    DomError,
 };
 use blitz_dom::{
-    local_name,
+    local_name, namespace_url,
     node::{Attribute, NodeSpecificData},
     ns, ElementNodeData, NodeData, QualName, RestyleHint,
 };
 use std::ops::Deref;
 
+#[derive(Debug, Clone)]
 pub struct Element(Node);
 
 impl Element {
     pub fn set_attribute(&self, name: &str, value: &str) {
-        let doc = blitz_document_mut();
+        let doc = BlitzDocument::document_mut();
 
         doc.snapshot_node(self.node_id());
         // let node = doc.get_node_mut(self.node_id()).unwrap();
@@ -64,7 +66,7 @@ impl Element {
 
                         // TODO
                         if name == "style" {
-                            let doc = blitz_document();
+                            let doc = BlitzDocument::document();
                             element.flush_style_attribute(doc.guard());
                         }
                     }
@@ -75,7 +77,7 @@ impl Element {
 
     pub fn remove_attribute(&self, attr_name: &str) {
         let name = attr_name;
-        let doc = blitz_document_mut();
+        let doc = BlitzDocument::document_mut();
 
         doc.snapshot_node(self.node_id());
         // let node = doc.get_node_mut(self.node_id()).unwrap();
@@ -106,7 +108,7 @@ impl Element {
     }
 
     pub fn remove(&self) {
-        let doc = blitz_document_mut();
+        let doc = BlitzDocument::document_mut();
         doc.remove_node(self.node_id());
     }
 }
@@ -116,6 +118,21 @@ impl Deref for Element {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl TryFrom<Node> for Element {
+    type Error = DomError;
+
+    fn try_from(value: Node) -> Result<Self, Self::Error> {
+        let doc = BlitzDocument::document();
+        let node_id = value.node_id();
+        let node = doc.get_node(node_id).unwrap();
+        if node.is_element() {
+            Ok(Self::from(node_id))
+        } else {
+            Err(DomError::Type("Node", "Element"))
+        }
     }
 }
 

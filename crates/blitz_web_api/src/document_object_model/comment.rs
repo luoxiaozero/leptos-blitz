@@ -1,4 +1,7 @@
-use super::node::{Node, NodeId};
+use super::{
+    node::{Node, NodeId},
+    BlitzDocument, DomError,
+};
 use std::ops::Deref;
 
 pub struct Comment(Node);
@@ -8,6 +11,21 @@ impl Deref for Comment {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl TryFrom<Node> for Comment {
+    type Error = DomError;
+
+    fn try_from(value: Node) -> Result<Self, Self::Error> {
+        let doc = BlitzDocument::document();
+        let node_id = value.node_id();
+        let node = doc.get_node(node_id).unwrap();
+        if node.is_text_node() {
+            Ok(Self::from(node_id))
+        } else {
+            Err(DomError::Type("Node", "Comment"))
+        }
     }
 }
 
