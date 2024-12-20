@@ -21,11 +21,11 @@ slotmap = "1.0.7"
 send_wrapper = "0.6.0"
 
 # Blitz
-blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-net = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-shell = { workspace = true }
+blitz-net = { workspace = true }
+blitz-dom = { workspace = true }
+blitz-traits = { workspace = true }
+blitz-html = { workspace = true }
 
 # Windowing & Input
 winit = { version = "0.30.2", features = ["rwh_06"] }

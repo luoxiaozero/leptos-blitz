@@ -1,10 +1,21 @@
 [workspace]
-members = ["crates/leptos-blitz", "crates/leptos_blitz_macro"]
+members = [
+    "crates/blitz_web_api",
+    "crates/leptos-blitz",
+    "crates/leptos_blitz_macro",
+]
 resolver = "2"
 
 [workspace.dependencies]
 leptos_blitz_macro = { path = "./crates/leptos_blitz_macro" }
 leptos_hot_reload = "0.7.1"
+
+# Blitz
+blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-net = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
 
 # [package]
 # name = "leptos-blitz-examples"

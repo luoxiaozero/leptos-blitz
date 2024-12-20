@@ -1,0 +1,9 @@
+[package]
+publish = false
+name = "blitz_web_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+web-sys = "0.3.76"
+blitz-dom = { workspace = true }
