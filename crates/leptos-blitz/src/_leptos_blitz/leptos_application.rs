@@ -5,19 +5,20 @@ use winit::{
     event::StartCause,
     event_loop::{ActiveEventLoop, EventLoopProxy},
 };
+use blitz_renderer_vello::BlitzVelloRenderer;
 
 pub struct LeptosNativeApplication {
-    inner: BlitzApplication<LeptosDocument>,
+    inner: BlitzApplication<LeptosDocument, BlitzVelloRenderer>,
 }
 
 impl LeptosNativeApplication {
-    pub fn new(rt: tokio::runtime::Runtime, proxy: EventLoopProxy<BlitzEvent>) -> Self {
+    pub fn new(proxy: EventLoopProxy<BlitzEvent>) -> Self {
         Self {
-            inner: BlitzApplication::new(rt, proxy.clone()),
+            inner: BlitzApplication::new(proxy.clone()),
         }
     }
 
-    pub fn add_window(&mut self, window_config: WindowConfig<LeptosDocument>) {
+    pub fn add_window(&mut self, window_config: WindowConfig<LeptosDocument, BlitzVelloRenderer>) {
         self.inner.add_window(window_config);
     }
 }

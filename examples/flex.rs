@@ -1,7 +1,6 @@
+use leptos_blitz::prelude::*;
 fn main() {
-    leptos_blitz::launch(app);
-}
-
-fn app() {
-    
+    launch(move || {
+        ""
+    });
 }

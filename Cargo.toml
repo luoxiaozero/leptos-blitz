@@ -13,12 +13,18 @@ leptos_hot_reload = "0.7.1"
 blitz_web_api = { path = "./crates/blitz_web_api" }
 
 # Blitz
-blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-net = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
-blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "280b1ba" }
+blitz-shell = { git = "https://github.com/DioxusLabs/blitz", rev = "6d3733d" }
+blitz-net = { git = "https://github.com/DioxusLabs/blitz", rev = "6d3733d" }
+blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "6d3733d" }
+blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "6d3733d" }
+blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "6d3733d" }
+blitz-renderer-vello = { git = "https://github.com/DioxusLabs/blitz", rev = "6d3733d" }
 
-# [package]
-# name = "leptos-blitz-examples"
-# version = "0.0.1"
+[package]
+name = "leptos-blitz-examples"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+leptos_blitz = { path = "./crates/leptos-blitz"}

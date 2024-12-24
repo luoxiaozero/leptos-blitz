@@ -4,10 +4,10 @@ use crate::{
     ev::Event,
 };
 use blitz_dom::{
-    events::EventData, namespace_url, net::Resource, ns, Atom, ColorScheme, Document, DocumentLike,
-    ElementNodeData, NodeData, QualName, Viewport, DEFAULT_CSS,
+    events::EventData, namespace_url, net::Resource, ns, Atom, Document, DocumentLike,
+    ElementNodeData, NodeData, QualName, DEFAULT_CSS,
 };
-use blitz_traits::net::NetProvider;
+use blitz_traits::{ColorScheme, Viewport, net::NetProvider};
 use blitz_web_api::dom::{self, BlitzDocument};
 use futures_util::FutureExt;
 use reactive_graph::owner::Owner;

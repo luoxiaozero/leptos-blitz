@@ -1,5 +1,5 @@
 [package]
-name = "leptos-blitz"
+name = "leptos_blitz"
 version = "0.1.0"
 edition = "2021"
 
@@ -27,6 +27,7 @@ blitz-net = { workspace = true }
 blitz-dom = { workspace = true }
 blitz-traits = { workspace = true }
 blitz-html = { workspace = true }
+blitz-renderer-vello = { workspace = true }
 
 # Windowing & Input
 winit = { version = "0.30.2", features = ["rwh_06"] }

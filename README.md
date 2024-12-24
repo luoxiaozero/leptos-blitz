@@ -5,8 +5,8 @@
 ### Trying it out
 
 1. Clone this repo.
-2. Run `cargo run`.
-
+2. Run an example:
+    - cargo run --example base
 
 ### Reference
 
